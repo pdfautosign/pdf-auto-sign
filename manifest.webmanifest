@@ -2,7 +2,7 @@
   "id": "./",
   "name": "PDF Auto Sign",
   "short_name": "PDF Auto Sign",
-  "description": "PDF Auto Sign V1.5.5.0 — 自动识别及自定义 PDF 模板",
+  "description": "PDF Auto Sign V1.5.5.26 — Auto Filename Templates",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",

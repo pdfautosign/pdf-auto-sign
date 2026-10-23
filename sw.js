@@ -1,4 +1,4 @@
-const CACHE = 'pdfautosign-v1555-new-icon';
+const CACHE = 'pdfautosign-v15528-multi-department-fields';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.png', './icon-512.png', './install.html'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
