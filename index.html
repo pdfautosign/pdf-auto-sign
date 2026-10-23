@@ -1,0 +1,540 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#123c68"><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./icon.png"><link rel="apple-touch-icon" href="./icon-512.png"><title>PDF Auto Sign V1.5.5.0</title><style>@import url("https://fonts.googleapis.com/css2?family=Alex+Brush&family=Allura&family=Dancing+Script:wght@400&family=Great+Vibes&display=swap");*{box-sizing:border-box}body{margin:0;background:#eef3f8;color:#19344b;font:15px system-ui,sans-serif}header{background:#123c68;color:white;padding:20px 16px}h1{margin:0;font-size:23px}header small{opacity:.85}main{max-width:780px;margin:auto;padding:13px}.card{background:white;padding:17px;border-radius:14px;margin-bottom:13px;box-shadow:0 2px 9px #123c6810}h2{font-size:17px;margin:0 0 10px}.hint{font-size:13px;color:#647789;line-height:1.6}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{flex:1;min-width:100px}button{background:#1769a6;color:white;border:0;border-radius:9px;padding:12px;font-weight:600;font-size:14px}button.secondary{background:#e8f0f6;color:#23455e}button:disabled{opacity:.45}input[type=file],select,input[type=date],input[type=text]{width:100%;padding:10px;border:1px solid #b6c7d6;border-radius:8px;background:white}label{display:block;margin:9px 0}.roles{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.roles label{margin:0;padding:9px;background:#eef4f8;border-radius:7px;font-size:13px}.roles input{margin-right:6px}#pad{height:145px;width:100%;border:2px dashed #abc0d0;border-radius:8px;touch-action:none;background:white}#preview{width:100%;height:auto;display:block;touch-action:none;border:1px solid #bccbd8;background:#fff}#previewWrap{position:relative}#mark{position:absolute;display:none;border:2px solid #d33;pointer-events:auto;touch-action:none;cursor:grab;background:#d336361a;width:90px;height:26px}#status{white-space:pre-wrap;line-height:1.5;font-size:13px}.danger{color:#a23d26}.ok{color:#13794c}footer{text-align:center;padding:14px;color:#73889b;font-size:12px}</style><style>.signer-assignments{display:grid;gap:9px;margin:12px 0}.signer-assignment{display:grid;grid-template-columns:minmax(95px,1fr) minmax(160px,2fr);align-items:center;gap:10px;padding:9px 12px;background:#eef4f8;border-radius:9px}.signer-assignment select{width:100%;min-width:0}@media(max-width:520px){.signer-assignment{grid-template-columns:1fr;gap:5px}}</style></head><body><header><h1>✍ PDF Auto Sign</h1><small>V1.5.5.0 · 独立 App · 通用 PDF 批量签名</small><div style="margin-top:12px;max-width:210px"><label style="margin:0">🌐 <span data-i18n="langLabel">语言 / Language</span><select id="appLanguage" aria-label="Language"><option value="zh">中文</option><option value="en">English</option><option value="ms">Bahasa Melayu</option></select></label></div></header><main>
+<section class="card"><h2>① 选择 PDF（可多选）</h2><input id="files" type="file" accept=".pdf,application/pdf" multiple><p class="hint" id="fileInfo">支持一次选择多份 PDF，完成后下载 ZIP。</p></section>
+<section class="card"><h2>② 保存本人签名</h2><p class="hint">签名只保存在本机浏览器。其他使用者在自己的设备上独立保存。</p><canvas id="pad"></canvas><div class="row"><button class="secondary" id="clear">清除画板</button><button id="save">保存签名</button><button class="secondary" id="erase">删除已存签名</button></div><p id="saved" class="hint">尚未保存签名</p></section>
+<section class="card"><h2>③ 多人签名设置 / Signer management</h2><p class="hint">在这里设置本人和其他已授权签名人。每个人可选择自己的姓名、字体与字号，并在③A为每个签名栏指定对应人员。</p><label>本次签署方式<select id="signMethod"><option value="signature">方式 1：手写签名</option><option value="name">方式 2：输入姓名（不显示手写签名）</option></select></label><label>本人姓名<input type="text" id="signName" placeholder="请输入本人姓名（支持中文 / English / Bahasa Melayu）" maxlength="80"></label><div id="nameFontOptions"><label>姓名字体<select id="nameFont"><option value="greatvibes">Great Vibes（默认）</option><option value="allura">Allura</option><option value="alexbrush">Alex Brush</option><option value="dancing">Dancing Script</option><option value="serif">经典衬线体</option><option value="italic">英文斜体</option></select></label><label>姓名字体大小 <span id="fontSizeText">28 px</span><input id="nameFontSize" type="range" min="16" max="48" step="1" value="28" style="width:100%"></label><div class="hint">姓名字体预览（与导出的 PDF 使用同一张透明文字图片）：</div><canvas id="nameFontPreview" style="display:block;width:100%;max-width:440px;height:95px;border:1px solid #b6c7d6;border-radius:8px;background:white"></canvas><p class="hint">新增的四种艺术字体首次使用需要联网加载；字体未加载成功时会使用系统备用字体。请等待字体加载后再预览和导出。中文会使用设备支持的回退字体。</p></div><p class="hint">两种方式二选一：选择手写签名时只显示签名；选择输入姓名时只显示姓名。两种方式都可单独选择是否添加日期。每个签名栏都使用当前选定的方式。</p><div class="row"><button type="button" id="savePrimaryAsSigner">＋ 保存本人为签名人 / Save as signer</button></div><div id="typedPeoplePanel" style="display:block;visibility:visible;scroll-margin-top:12px;border-top:1px solid #d5e1ea;margin-top:20px;padding-top:12px"><h3>新增或编辑签名人 / Add or edit signer</h3><p class="hint">新增第二位、第三位签名人，每人独立设置姓名、字体与字号。保存后在③A的每个签名栏中选择相应姓名签名。仅可使用已授权人员的签名。</p><label>签名人姓名 / Signer name<input id="extraPersonName" type="text" maxlength="80" placeholder="例如：第二位员工姓名 / Second signer"></label><label>签名字体 / Signature font<select id="extraPersonFont"><option value="greatvibes">Great Vibes</option><option value="allura">Allura</option><option value="alexbrush">Alex Brush</option><option value="dancing">Dancing Script</option><option value="serif">Classic Serif</option><option value="italic">English Italic</option></select></label><label>字体大小 / Font size: <span id="extraPersonSizeText">28 px</span><input id="extraPersonSize" type="range" min="16" max="48" value="28" style="width:100%"></label><canvas id="extraPersonPreview" style="width:100%;max-width:440px;height:100px;border:1px solid #b6c7d6;border-radius:8px;background:white"></canvas><div class="row"><button id="saveExtraPerson" type="button">＋ 保存签名人 / Save signer</button><button id="deleteExtraPerson" class="secondary" type="button">删除所选 / Delete selected</button></div><label>已保存姓名签名 / Saved typed signers<select id="extraPeopleList"></select></label><p class="hint">姓名签名会转换为透明图片，并保存在本机。字体第一次使用可能需要网络。每个 PDF 签名栏可独立指定签名人。</p></div></section>
+<section class="card" id="assetsPanel"><h2>③A 多人签名与公司印章 / Signatures & Stamps</h2><p class="hint">仅上传本人或已获授权使用的签名和印章。图片只储存在本设备。PNG 透明背景效果最好。</p><label>新增图片类型 / Type<select id="assetType"><option value="signature">签名 / Signature</option><option value="stamp">公司印章 / Company stamp</option></select></label><label>名称 / Name<input id="assetName" type="text" maxlength="60" placeholder="例如：Manager / Company Stamp"></label><label>上传图片 / Upload PNG or JPG<input id="assetFile" type="file" accept="image/png,image/jpeg"></label><div class="row"><button id="addAsset" type="button">保存图片 / Save</button><button id="removeAsset" class="secondary" type="button">删除所选 / Delete</button></div><label>已保存图片 / Saved assets<select id="assetLibrary"></select></label><label>当前签名栏使用 / Signature for selected field<select id="fieldAsset"></select></label><div id="signerAssignments" class="signer-assignments"></div><p class="hint">每个勾选的签名栏可指定不同的已授权签名。未指定时使用本人签名。/ Assign an authorized signature to each checked field.</p><p class="hint">选择签名栏后，可分别指定不同人的签名；“本人签名”使用上方原有手写或姓名方式。</p><div class="row"><button class="secondary" id="backupAssets" type="button">备份签名与印章 / Backup</button><button class="secondary" id="restoreAssetsBtn" type="button">恢复图片 / Restore</button></div><input type="file" id="restoreAssetsFile" accept="application/json,.json" hidden><hr><label><input type="checkbox" id="useStamp"> 本次 PDF 加入公司印章 / Add company stamp</label><label>选择印章 / Stamp<select id="stampAsset"></select></label><label>印章宽度 / Stamp width <span id="stampWidthLabel">110</span> px<input id="stampWidth" type="range" min="40" max="240" value="110"></label><button id="placeStamp" class="secondary" type="button">在预览中点击盖章位置 / Place stamp</button><button id="clearStamp" class="secondary" type="button">清除当前文件印章位置 / Clear position</button><p id="stampStatus" class="hint">请先选择印章，再在 PDF 预览中点击放置位置。每份文件独立设置。</p></section>
+<section class="card"><h2>④ 选择文件模板与签名栏</h2><label>签名模式<select id="mode"><option value="auto">自动识别 PDF 签名栏（支持其他公司）</option><option value="custom">自定义通用 PDF 模板</option></select></label><p class="hint">优先按 PDF 文件名称匹配已保存模板；同系列文件只需选择一次签名栏。首次请核对实际签名栏并保存。文件标题不是签名栏。</p><div id="filenameTemplateStatus" class="hint" role="status" style="margin:8px 0"></div><div id="batchSyncStatus" class="hint" role="status" style="margin:8px 0"></div><div id="tmcRoles" class="roles"></div><p id="roleHint" class="hint"></p><div id="rememberedTemplate" class="hint" role="status" style="margin:9px 0"></div><div class="row"><button type="button" id="rememberTemplate">保存当前文件的签名栏与位置 / Save layout</button><button type="button" class="secondary" id="forgetRememberedTemplate">删除匹配模板 / Forget layout</button></div><p class="hint">同版式文件可自动恢复已选栏位和已确认的位置。仅储存模板布局，不储存签名或授权；版式不符时不会自动套用。每次生成前仍须确认预览。</p><div id="customOptions" hidden><label>自定义模板名称<input id="templateName" type="text" placeholder="例如：其他公司收货单"></label><label>已保存模板<select id="templateSelect"><option value="">新建模板</option></select></label><div class="row"><button id="saveTemplate" class="secondary">保存当前签名位置为模板</button><button id="deleteTemplate" class="secondary">删除所选模板</button></div><p class="hint">请先选择 PDF，在下面预览上点击要签名的位置；每次点击只设置一个签名位置。批量文件需版式一致。</p></div></section>
+<section class="card"><h2>⑤ 预览签名位置</h2><label><input type="checkbox" id="addDate" checked> 在签名或姓名旁添加日期</label><label>日期位置（当前签名栏）<select id="datePlacement"><option value="bottom">签名下方 / Bottom</option><option value="right">签名右侧 / Right</option></select></label><label>签名日期（可修改）<input type="date" id="signDate"></label><p class="hint" id="dateGapInfo">日期间距：自动 2 mm（无需调整）</p><p class="hint">日期默认当天，格式 DD/MM/YYYY；可为不同签名栏选择下方或右侧。签名前请逐页核对。</p><div class="row"><label>预览文件<select id="previewFile"></select></label><label>预览页码<select id="previewPage"></select></label></div><div id="previewWrap"><canvas id="preview"></canvas><div id="otherMarks" style="position:absolute;inset:0;pointer-events:none"></div><div id="mark"></div></div><p class="hint" id="position">请先选择 PDF。自定义模式：点击页面放置签名。</p><label>签名大小 <span id="sizeText">100%</span><input id="size" type="range" min="50" max="170" step="5" value="100" style="width:100%"></label><p class="hint">已识别的签名栏会自动定位，不必拖动。红框显示当前栏位，蓝框显示其他已选栏位；只有识别不确定时才需人工复核。</p><button class="secondary" id="confirmPreview">确认当前预览位置</button></section>
+<section class="card"><h2>⑥ 确认并批量签名</h2><label><input id="authorized" type="checkbox"> 我确认只使用本人签名或已获得明确授权，并确认所选签名栏有权由我签署。</label><label><input id="reviewed" type="checkbox"> 我已预览并确认签名位置。</label><button id="run" style="width:100%">批量生成已签名 PDF（ZIP）</button><p id="status"></p><p class="hint">仅在本机浏览器处理文件；处理库首次需要联网。生成的是可见图片签名，不是证书型数字签章。原始 PDF 不修改；请逐页核对签名。共用设备请删除保存的签名。</p></section></main><footer>PDF Auto Sign V1.5.5.0 · 与 MyMoney 完全独立</footer>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>
+const $=id=>document.getElementById(id);if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';const KEY='pdfautosign_v13_signature',TK='pdfautosign_v13_templates',PK='pdfautosign_v13_positions',NK='pdfautosign_v135_name',AK='pdfautosign_v135_addname',MK='pdfautosign_v136_method',FK='pdfautosign_v137_font',FSK='pdfautosign_v137_fontsize';let savedPositions=JSON.parse(localStorage.getItem(PK)||'{}'),previewConfirmed=false,previewType=null;const defaults={stock:{division:[.105,.085],head:[.33,.085],clerk:[.57,.085]},issue:{withdrawal:[.065,.065],keeper:[.225,.065],approval:[.365,.065],clerk:[.72,.065]}};let fileFields={},fieldFocus=null;let previewPdfWidth=1,previewPdfHeight=1;const ROLEKEY='pdfautosign_v142_roles',DPK='pdfautosign_v146_dateplacement';let datePlacements={};try{datePlacements=JSON.parse(localStorage.getItem(DPK)||'{}')}catch(e){datePlacements={}};let manualRoles=JSON.parse(localStorage.getItem(ROLEKEY)||'[]');let signature=localStorage.getItem(KEY),templates=JSON.parse(localStorage.getItem(TK)||'{}'),position={x:.75,y:.08},activeDoc=null,activeFile=-1,activePage=1,previewWidth=1,previewHeight=1;const pad=$('pad'),ctx=pad.getContext('2d');let drawing=false,dirty=false;const today=new Date();$('signDate').value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');$('signName').value=localStorage.getItem(NK)||'';$('signMethod').value=localStorage.getItem(MK)==='name'?'name':'signature';$('signMethod').addEventListener('change',()=>{localStorage.setItem(MK,$('signMethod').value);invalidate();drawMark()});$('signName').addEventListener('input',()=>{localStorage.setItem(NK,$('signName').value);invalidate();drawMark()});const fontFamilies={greatvibes:'"Great Vibes", cursive',allura:'"Allura", cursive',alexbrush:'"Alex Brush", cursive',dancing:'"Dancing Script", cursive',serif:'Georgia, serif',italic:'Georgia, serif',bold:'Arial, sans-serif'};
+function chosenFont(){return fontFamilies[$('nameFont').value]||fontFamilies.greatvibes}
+async function ensureNameFont(){if(!signByName())return;const f=$('nameFont').value;if(!['greatvibes','allura','alexbrush','dancing'].includes(f))return;await document.fonts.load('28px '+chosenFont(),$('signName').value.trim()||'David');if(!document.fonts.check('28px '+chosenFont(),$('signName').value.trim()||'David'))throw Error('艺术字体尚未加载，请连接网络后重试')}
+function chosenSize(){return Number($('nameFontSize').value)||28}
+function fontSpec(px){return ($('nameFont').value==='italic'?'italic ':'')+px+'px '+chosenFont()}
+function renderAnyNameCanvas(label,fontKey,px){
+ const family=fontFamilies[fontKey]||fontFamilies.greatvibes;
+ const spec=(fontKey==='italic'?'italic ':'')+px+'px '+family;
+ let c=document.createElement('canvas'),ctx=c.getContext('2d');ctx.font=spec;
+ const width=Math.max(2,Math.ceil(ctx.measureText(label).width)+20);
+ c.width=width*2;c.height=Math.ceil(px*1.65)*2;
+ ctx=c.getContext('2d');ctx.scale(2,2);ctx.font=spec;
+ ctx.fillStyle='#222';ctx.textBaseline='middle';ctx.fillText(label,10,c.height/4);
+ return c;
+}
+function cropInkCanvas(source){
+ const ctx=source.getContext('2d'),w=source.width,h=source.height,rgba=ctx.getImageData(0,0,w,h).data;
+ let l=w,t=h,r=-1,b=-1;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(rgba[(y*w+x)*4+3]>20){l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y)}
+ if(r<l)return source;
+ const pad=3; l=Math.max(0,l-pad);t=Math.max(0,t-pad);r=Math.min(w-1,r+pad);b=Math.min(h-1,b+pad);
+ const c=document.createElement('canvas');c.width=r-l+1;c.height=b-t+1;c.getContext('2d').drawImage(source,l,t,c.width,c.height,0,0,c.width,c.height);return c;
+}
+function renderNameCanvas(label){return cropInkCanvas(renderAnyNameCanvas(label,$('nameFont').value,chosenSize()))}
+function typedPdfDimensions(image,w,x,scale,availableWidth){
+ // Use actual cropped visible ink, not the full transparent canvas or name length.
+ // 28px -> about 18 PDF points; smaller/larger font settings scale proportionally.
+ const px=Math.max(16,Math.min(48,Number(image.fontPx)||28));
+ const aspect=Math.max(0.01,image.width/Math.max(1,image.height));
+ const targetHeight=px*(18/28)*scale;
+ const maxWidth=Math.max(1,Math.min(w-x-3,Number(availableWidth)||w*.19));
+ const width=Math.min(targetHeight*aspect,maxWidth);
+ return {width,height:width/aspect};
+}
+
+function nameImageSize(label){let c=renderNameCanvas(label);return {width:c.width/2,height:c.height/2}}
+function updateNamePreview(){let c=$('nameFontPreview'),r=c.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,3);c.width=Math.max(200,Math.round(r.width*dpr));c.height=Math.round(95*dpr);let ct=c.getContext('2d');ct.scale(dpr,dpr);let label=$('signName').value.trim()||'David';ct.font=fontSpec(chosenSize());ct.fillStyle='#222';ct.textBaseline='middle';ct.fillText(label,12,46);$('fontSizeText').textContent=chosenSize()+' px';$('nameFontOptions').hidden=!signByName()}
+$('nameFont').value=fontFamilies[localStorage.getItem(FK)]?localStorage.getItem(FK):'greatvibes';$('nameFontSize').value=localStorage.getItem(FSK)||'28';
+for(const id of ['nameFont','nameFontSize'])$(id).addEventListener('input',()=>{localStorage.setItem(FK,$('nameFont').value);localStorage.setItem(FSK,$('nameFontSize').value);invalidate();updateNamePreview();drawMark()});
+$('signName').addEventListener('input',updateNamePreview);$('signMethod').addEventListener('change',updateNamePreview);window.addEventListener('resize',updateNamePreview);updateNamePreview();
+function signByName(){return $('signMethod').value==='name'}function nameLabel(){return signByName() ? $('signName').value.trim():''}function dateLabel(){const v=$('signDate').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return '';const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}for(const id of ['addDate','signDate'])$(id).addEventListener('change',()=>{invalidate();drawMark()});
+function padResize(){let rect=pad.getBoundingClientRect(),old=dirty?pad.toDataURL():null,dpr=devicePixelRatio||1;pad.width=Math.round(rect.width*dpr);pad.height=Math.round(145*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.strokeStyle='#142e45';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';if(old){let im=new Image;im.onload=()=>ctx.drawImage(im,0,0,rect.width,145);im.src=old}}padResize();window.addEventListener('resize',padResize);function xy(e){let r=pad.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}pad.addEventListener('pointerdown',e=>{drawing=true;dirty=true;pad.setPointerCapture(e.pointerId);let p=xy(e);ctx.beginPath();ctx.moveTo(...p);ctx.lineTo(p[0]+.1,p[1]+.1);ctx.stroke()});pad.addEventListener('pointermove',e=>{if(drawing)ctx.lineTo(...xy(e)),ctx.stroke()});pad.addEventListener('pointerup',()=>drawing=false);pad.addEventListener('pointercancel',()=>drawing=false);$('clear').onclick=()=>{ctx.clearRect(0,0,pad.width,pad.height);dirty=false};function trim(){let a=ctx.getImageData(0,0,pad.width,pad.height).data,x0=pad.width,y0=pad.height,x1=-1,y1=-1;for(let y=0;y<pad.height;y++)for(let x=0;x<pad.width;x++)if(a[(y*pad.width+x)*4+3]>20){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}if(x1<0)return null;let c=document.createElement('canvas'),p=10;c.width=x1-x0+1+p*2;c.height=y1-y0+1+p*2;c.getContext('2d').drawImage(pad,x0,y0,x1-x0+1,y1-y0+1,p,p,x1-x0+1,y1-y0+1);return c.toDataURL('image/png')}$('save').onclick=()=>{invalidate();let d=trim();if(!d)return alert('请先手写签名');try{localStorage.setItem(KEY,d);signature=d;updateSaved()}catch(e){alert('本机储存失败：'+e.message)}};$('erase').onclick=()=>{if(confirm('确定删除本机已保存的签名？')){localStorage.removeItem(KEY);signature=null;updateSaved()}};function updateSaved(){drawMark();$('saved').textContent=signature?'✓ 已保存本人签名':'尚未保存签名'}updateSaved();
+function updateTemplates(){let sel=$('templateSelect'),selected=sel.value;sel.innerHTML='<option value="">新建模板</option>';Object.keys(templates).forEach(k=>{let o=document.createElement('option');o.value=k;o.textContent=k;sel.append(o)});if(templates[selected])sel.value=selected}updateTemplates();$('templateSelect').onchange=()=>{let t=templates[$('templateSelect').value];if(t){position={x:t.x,y:t.y};$('size').value=t.size;$('sizeText').textContent=t.size+'%';drawMark()}};$('saveTemplate').onclick=()=>{let name=$('templateName').value.trim();if(!name)return alert('请输入模板名称');templates[name]={...position,size:Number($('size').value)};localStorage.setItem(TK,JSON.stringify(templates));updateTemplates();$('templateSelect').value=name;alert('已保存模板。适用于版式一致的 PDF。')};$('deleteTemplate').onclick=()=>{let k=$('templateSelect').value;if(!k)return;if(confirm('删除模板 '+k+'？')){delete templates[k];localStorage.setItem(TK,JSON.stringify(templates));updateTemplates();$('templateSelect').value=''}};
+const standardRoles=['Division','Dept. Head','Clerk','Withdrawal','Keeper','Approval','Manager','Supervisor','QC','Prepared By','Checked By','Approved By','Received By','Issued By','Verified By','Authorized By'];
+function fieldKey(name){return name.toLowerCase().replace(/[^a-z0-9]/g,'');}
+function allFields(){return fileFields[activeFile]||[]}
+function selectedFields(){return allFields().filter(f=>f.selected)}
+function currentField(){return selectedFields().find(f=>f.name===fieldFocus)||selectedFields()[0]||null}
+// Saved layout presets are separate from signer assets and never authorize signing.
+// Filename-to-template rules: the template title is NOT a signature role.
+function filenameTemplate(filename){
+ const n=String(filename||'').replace(/\.pdf$/i,'').toLowerCase().replace(/[_\-]+/g,' ').replace(/\s+/g,' ').trim();
+ if(/\bstore\s*in\s*doc\b/.test(n))return {key:'store-in-doc',label:'Print Complete Store-in Doc'};
+ return null;
+}
+function filenameTemplateStatus(){
+ const f=$('files').files[activeFile],rule=f&&filenameTemplate(f.name),el=$('filenameTemplateStatus');
+ if(!el)return;
+ el.textContent=rule?`文件名称匹配：${rule.label}。${savedLayouts.some(x=>x.filenameKey===rule.key)?'已保存模板可自动套用（仍需核对预览）。':'首次使用：请选实际签名栏、确认位置后点击「保存当前文件的签名栏与位置」。'}`:'文件名称没有匹配已知模板；继续按签名栏布局识别。';
+}
+const LAYOUT_KEY='pdf_auto_sign_v1548_layouts';
+let savedLayouts=[];try{const v=JSON.parse(localStorage.getItem(LAYOUT_KEY)||'[]');if(Array.isArray(v))savedLayouts=v.filter(x=>x&&x.version===1).slice(0,60)}catch(e){}
+let matchedLayoutIndex=-1;
+function layoutSnapshot(fields=allFields()){
+ const roles=fields.filter(f=>f&&f.name&&f.positions).map(f=>({name:f.name,key:fieldKey(f.name),selected:!!f.selected,positions:Object.fromEntries(Object.entries(f.positions).filter(([k,v])=>Array.isArray(v)&&v.length===2&&v.every(Number.isFinite)).map(([k,v])=>[k,[...v]]))})).sort((a,b)=>a.key.localeCompare(b.key));
+ return {version:1,pages:activeDoc?.numPages||0,dimensions:activeDoc?([Math.round(previewPdfWidth||0),Math.round(previewPdfHeight||0)]):null,filenameKey:filenameTemplate($('files').files[activeFile]?.name)?.key||null,roles};
+}
+function layoutSimilarity(a,b){
+ if(a.pages!==b.pages||!a.roles.length||!b.roles.length)return 0;
+ const left=new Map(a.roles.map(x=>[x.key,x]));let overlap=0,located=0,matched=0;
+ for(const r of b.roles){const t=left.get(r.key);if(!t)continue;overlap++;const pages=Object.keys(r.positions).filter(k=>t.positions[k]);for(const k of pages){located++;const [x,y]=r.positions[k], [tx,ty]=t.positions[k];if(Math.abs(x-tx)<.025&&Math.abs(y-ty)<.018)matched++}}
+ const coverage=overlap/Math.max(a.roles.length,b.roles.length);
+ return coverage>=.8&&located>0&&matched/located>=.85 ? coverage*(matched/located):0;
+}
+function updateLayoutStatus(msg){$('rememberedTemplate').textContent=msg||'尚未匹配已保存的文件模板；确认签名位置后可保存。';$('forgetRememberedTemplate').disabled=matchedLayoutIndex<0}
+function applySavedRoles(saved,fields){
+ let count=0;
+ for(const r of saved.roles){let f=fields.find(x=>fieldKey(x.name)===r.key);
+  if(!f){f={name:r.name,selected:false,manual:false,positions:{},confidence:{}};fields.push(f)}
+  f.selected=!!r.selected;
+  for(const [page,pos] of Object.entries(r.positions||{})){
+   if(Array.isArray(pos)&&pos.length===2){f.positions[page]=[...pos];f.confidence=f.confidence||{};f.confidence[page]='saved-filename-template'}
+  }count++;
+ }
+ return count;
+}
+function applyRememberedLayout(){
+ matchedLayoutIndex=-1;const now=layoutSnapshot();let best=0;
+ // Prefer the filename mapping; never treat the template title as a signature field.
+ if(now.filenameKey){matchedLayoutIndex=savedLayouts.findIndex(x=>x.filenameKey===now.filenameKey&&x.pages===now.pages&&(!x.dimensions||!now.dimensions||!x.dimensions.every(Boolean)||!now.dimensions.every(Boolean)||x.dimensions.every((v,j)=>Math.abs(v-now.dimensions[j])<3)))}
+ if(matchedLayoutIndex<0&&!now.filenameKey){
+ savedLayouts.forEach((v,i)=>{const score=layoutSimilarity(v,now);if(score>best){best=score;matchedLayoutIndex=i}});}
+ if(matchedLayoutIndex<0){updateLayoutStatus();filenameTemplateStatus();return}
+ const saved=savedLayouts[matchedLayoutIndex];let count=applySavedRoles(saved,allFields());
+ updateLayoutStatus('✓ 已匹配已保存模板，恢复 '+count+' 个签名栏及位置。请检查预览后再签署。');filenameTemplateStatus();
+}
+$('rememberTemplate').onclick=()=>{
+ if(!activeDoc||!allFields().length)return alert('请先上传并识别 PDF');
+ const chosen=selectedFields();if(!chosen.length)return alert('请至少选择一个签名栏');
+ if(chosen.some(f=>!f.positions[activePage]))return alert('请先检查并确认签名栏位置');
+ if(!previewConfirmed)return alert('请先点击「确认当前预览位置」');
+ const snapshot=layoutSnapshot();if(!snapshot.roles.some(x=>Object.keys(x.positions).length))return;
+ let idx=snapshot.filenameKey?savedLayouts.findIndex(x=>x.filenameKey===snapshot.filenameKey&&x.pages===snapshot.pages&&(!x.dimensions||!snapshot.dimensions||!x.dimensions.every(Boolean)||!snapshot.dimensions.every(Boolean)||x.dimensions.every((v,j)=>Math.abs(v-snapshot.dimensions[j])<3))):savedLayouts.findIndex(x=>layoutSimilarity(x,snapshot)>.85);
+ if(idx<0){if(savedLayouts.length>=60)savedLayouts.shift();savedLayouts.push(snapshot);idx=savedLayouts.length-1}else savedLayouts[idx]=snapshot;
+ try{localStorage.setItem(LAYOUT_KEY,JSON.stringify(savedLayouts));matchedLayoutIndex=idx;updateLayoutStatus('✓ 文件模板已保存。同系列文件下次会自动套用签名栏与位置。');filenameTemplateStatus();propagateBatchSelection(activeFile)}catch(e){alert('模板保存失败：'+e.message)}
+};
+$('forgetRememberedTemplate').onclick=()=>{if(matchedLayoutIndex<0)return;if(!confirm('删除这个已保存的文件模板？'))return;savedLayouts.splice(matchedLayoutIndex,1);localStorage.setItem(LAYOUT_KEY,JSON.stringify(savedLayouts));matchedLayoutIndex=-1;updateLayoutStatus('已删除匹配模板。')};
+// Batch grouping uses the detected role names, page count and normalized signature-line coordinates.
+// Only sufficiently similar files share selection and positions; unrelated PDFs remain untouched.
+let batchGroups=[],batchScanning=false;
+function batchFingerprint(fields,pages){return {pages,roles:(fields||[]).filter(f=>f.positions&&Object.keys(f.positions).length).map(f=>({key:fieldKey(f.name),positions:f.positions})).sort((a,b)=>a.key.localeCompare(b.key))}}
+function sameBatchLayout(a,b){
+ if(!a||!b||a.pages!==b.pages||!a.roles.length||!b.roles.length)return false;
+ const ma=new Map(a.roles.map(x=>[x.key,x]));let matched=0,comparable=0;
+ for(const r of b.roles){const x=ma.get(r.key);if(!x)continue;comparable++;
+  const common=Object.keys(r.positions).filter(k=>x.positions[k]);
+  if(common.length&&common.every(k=>{const v=r.positions[k],w=x.positions[k];return Math.abs(v[0]-w[0])<.028&&Math.abs(v[1]-w[1])<.022}))matched++;
+ }
+ return comparable>=1&&matched/Math.max(a.roles.length,b.roles.length)>=.8;
+}
+function batchGroupOf(i){return batchGroups.find(g=>g.includes(i))||[i]}
+function batchStatus(){const el=$('batchSyncStatus');if(!el)return;
+ const g=batchGroupOf(activeFile);el.textContent=batchScanning?'正在分析全部 PDF 的签名栏，请稍候…':(batchGroups.length&&$('files').files.length>1?`批量同步：本组 ${g.length} 份相同版式 PDF（共 ${batchGroups.length} 组）。在本组勾选一次，其他文件自动同步；不同版式不会套用。`:'选择多份相同版式 PDF 后，可一次勾选并同步签名栏。');
+}
+function propagateBatchSelection(sourceIndex){
+ const src=fileFields[sourceIndex];if(!src)return;
+ const g=batchGroupOf(sourceIndex);for(const i of g){if(i===sourceIndex||!fileFields[i])continue;
+  for(const target of fileFields[i]){const origin=src.find(x=>fieldKey(x.name)===fieldKey(target.name));if(!origin)continue;
+   target.selected=!!origin.selected;
+   // Keep each PDF's own detected coordinates; only reuse confirmed source positions when close.
+   for(const [page,pos] of Object.entries(origin.positions||{})){const own=target.positions?.[page];if(own&&Math.abs(own[0]-pos[0])<.028&&Math.abs(own[1]-pos[1])<.022)target.positions[page]=[...pos]}
+  }
+ }
+}
+async function buildBatchGroups(fs){
+ batchGroups=[];if(!fs.length){batchStatus();return}
+ batchScanning=true;batchStatus();const signatures=[];
+ for(let i=0;i<fs.length;i++){
+  try{const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await fs[i].arrayBuffer())}).promise;
+   const fields=await scanFields(pdf);fileFields[i]=fields;signatures[i]=batchFingerprint(fields,pdf.numPages);await pdf.destroy();
+  }catch(e){fileFields[i]=[];signatures[i]=null}
+ }
+ for(let i=0;i<fs.length;i++){
+  let group=batchGroups.find(g=>{
+   const r1=filenameTemplate(fs[g[0]].name),r2=filenameTemplate(fs[i].name);
+   if(r1&&r2&&r1.key===r2.key&&signatures[g[0]]?.pages===signatures[i]?.pages)return true;
+   return sameBatchLayout(signatures[g[0]],signatures[i]);
+  });
+  if(group)group.push(i);else batchGroups.push([i]);
+ }
+ // Apply previously confirmed filename templates to every matching PDF in the batch.
+ for(let i=0;i<fs.length;i++){
+  const rule=filenameTemplate(fs[i].name);if(!rule||!signatures[i])continue;
+  const saved=savedLayouts.find(x=>x.filenameKey===rule.key&&x.pages===signatures[i].pages);
+  if(saved)applySavedRoles(saved,fileFields[i]);
+ }
+ // Initial selection comes from the first file in each matching group.
+ for(const group of batchGroups){if(group.length>1)propagateBatchSelection(group[0])}
+ batchScanning=false;batchStatus();
+}
+function renderRoles(){let box=$('tmcRoles');box.replaceChildren();for(let f of allFields()){let label=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.checked=!!f.selected;cb.onchange=()=>{f.selected=cb.checked;propagateBatchSelection(activeFile);batchStatus();if(cb.checked)fieldFocus=f.name;else if(fieldFocus===f.name)fieldFocus=null;invalidate();drawMark();if(typeof renderSignerAssignments==='function')renderSignerAssignments();};label.append(cb,document.createTextNode(f.name));label.onclick=e=>{if(e.target!==cb){fieldFocus=f.name;setTimeout(()=>{drawMark();if(typeof updateAssetUI==='function')updateAssetUI()},0)}};box.append(label)}$('roleHint').textContent=allFields().length?`此文件识别到 ${allFields().length} 个可能的签名栏；请核对名称和红框位置。`: '未能可靠识别签名栏（可能是扫描件或特殊排版）。请勿直接签署，改用可选取文字的 PDF。';}
+function addField(name,manual=false){name=name.trim().replace(/\s+/g,' ');if(!name)return;let arr=allFields(),existing=arr.find(f=>fieldKey(f.name)===fieldKey(name));if(existing){existing.selected=true;fieldFocus=existing.name}else{arr.push({name,selected:true,manual,positions:{}});fieldFocus=name}if(manual&&!manualRoles.includes(name)){manualRoles.push(name);localStorage.setItem(ROLEKEY,JSON.stringify(manualRoles))}renderRoles();invalidate();drawMark();if(typeof updateAssetUI==='function')updateAssetUI()}
+// General-purpose text-based role discovery. Only accept labels near a drawn line or a signature keyword.
+const roleWords=/(?:sign(?:ed|ature|atory)?|authori[sz](?:ed|ation)?|approv(?:ed|al|er)?|verif(?:ied|ication|ier)?|check(?:ed|er)?|prepar(?:ed|er)?|review(?:ed|er)?|confirm(?:ed|ation)?|receiv(?:ed|er)?|issu(?:ed|er)?|inspect(?:ed|or)?|acknowledg(?:ed|ement)?|manager|supervisor|qc|quality\s*control|clerk|keeper|withdrawal|division|dept\.?\s*head|director|officer|leader|executive|witness|employee|applicant|request(?:ed|or)?|hod|pic|pengurus|penyelia|kerani|disedia(?:kan)?|disemak|diluluskan|diterima|tandatangan|签名|签署|批准|审核|经理|主管|经办|仓管|负责人)/i;
+const excludeLabel=/^(?:date|time|page|no\.?|number|total|qty|quantity|item|description|department|memo|project|reason|unit|location|lot|address|phone|fax|email|remark|remarks|condition|issue\s*date|stock\s*in\s*date|printed|from|to|reference|company|division\s*[-–]\s*|signature\s*date|tarikh|日期|数量|部门|单号|品名|备注)$/i;
+function normalizedLabel(raw){let s=String(raw||'').replace(/[\u0000-\u001f]/g,' ').replace(/[：:]\s*$/,'').replace(/^\s*(?:\(?\d+\)?[.)]\s*)/,'').replace(/\s+/g,' ').trim();if(s.length<2||s.length>48||excludeLabel.test(s)||/\d{3,}/.test(s))return '';return s}
+function lineNearLabel(label,lines,pageWidth,pageHeight){
+ // Prefer a horizontal underline immediately AFTER the role label, not a nearby table border.
+ const x=label.end??label.x,y=label.y;
+ const options=lines.filter(l=>l.x1-l.x0>=45&&l.x1-l.x0<=pageWidth*.45&&Math.abs(l.y-y)<=18&&l.x1>=x+25&&l.x0>=x-10&&l.x0<=x+115);
+ options.sort((a,b)=> (Math.abs(a.y-y)*3+Math.abs(a.x0-x))-(Math.abs(b.y-y)*3+Math.abs(b.x0-x)));
+ return options[0]||null;
+}
+async function scanFields(pdf){let found=new Map();for(let n=1;n<=pdf.numPages;n++){
+ let page=await pdf.getPage(n),vp=page.getViewport({scale:1}),tc=await page.getTextContent(),items=tc.items.filter(it=>String(it.str||'').trim());
+ let lines=[];try{let op=await page.getOperatorList(),A=pdfjsLib.OPS;for(let i=0;i<op.fnArray.length;i++){if(op.fnArray[i]!==A.constructPath)continue;let args=op.argsArray[i];if(!args||!Array.isArray(args[0]))continue;let ops=args[0],coords=args[1]||[],k=0,last=null;for(let cmd of ops){if(cmd===A.moveTo){last=[coords[k++],coords[k++]]}else if(cmd===A.lineTo){let next=[coords[k++],coords[k++]];if(last&&Math.abs(next[1]-last[1])<2&&Math.abs(next[0]-last[0])>40)lines.push({x0:Math.min(last[0],next[0]),x1:Math.max(last[0],next[0]),y:last[1]});last=next}else if(cmd===A.rectangle){k+=4}else if(cmd===A.curveTo){k+=6}else if(cmd===A.curveTo2||cmd===A.curveTo3){k+=4}}}}catch(e){}
+ // Join text fragments on the same baseline before matching role names.
+ // Some PDFs split "Dept. Head" into separate PDF.js text items.
+ const fragments=items.map(it=>({str:String(it.str||'').replace(/[\u0000-\u001f]/g,'').trim(),x:it.transform[4],y:it.transform[5],width:it.width||0})).filter(it=>it.str);
+ fragments.sort((a,b)=>b.y-a.y||a.x-b.x);
+ let groups=[];
+ for(let it of fragments){let g=groups.find(g=>Math.abs(g.y-it.y)<3&&it.x>=g.x-2&&it.x<=g.end+24);
+   if(g){let gap=it.x-g.end;g.str+=(gap>3?' ':'')+it.str;g.end=Math.max(g.end,it.x+it.width)}
+   else groups.push({str:it.str,x:it.x,y:it.y,end:it.x+it.width});
+ }
+ // V1.5.3: Footer-specific extraction for report-style signature rows.
+ // A single PDF text item can contain several roles with wide spaces, so
+ // examine both individual text items and their same-baseline combinations.
+ // Only short, anchored role names in the bottom footer are eligible.
+ const footerRolePattern=/(?:^|\s)(Manager|Supervisor|QC|Clerk|Division|Dept\.?\s*Head|Keeper|Withdrawal|Approval|Prepared\s+By|Checked\s+By|Approved\s+By|Verified\s+By)\s*[:：]/gi;
+ const footerRows=[...fragments,...groups];
+ for(const row of footerRows){
+   if(row.y>vp.height*.19||row.y<8)continue;
+   let raw=row.str, matches=[...raw.matchAll(footerRolePattern)];
+   if(!matches.length)continue;
+   for(let mi=0;mi<matches.length;mi++){
+     const match=matches[mi],name=match[1].replace(/\s+/g,' ').trim(),key=fieldKey(name);
+     // Use character offset only when PDF has combined the entire row into one item.
+     // When labels are separate text items, their actual x-coordinates win.
+     let exact=fragments.find(f=>Math.abs(f.y-row.y)<3&&fieldKey(f.str.replace(/[:：]\s*$/,''))===key);
+     let lx=exact?exact.x:row.x+(row.end-row.x)*match.index/Math.max(1,raw.length);
+     let lend=exact?exact.x+exact.width:row.x+(row.end-row.x)*(match.index+match[0].length)/Math.max(1,raw.length);
+     let near=lineNearLabel({x:lx,y:row.y,end:lend},lines,vp.width,vp.height);
+     let px=near?near.x0+Math.min(9,(near.x1-near.x0)*.08):lend+8;
+     let py=near?near.y+3:row.y-9;
+     if(!found.has(key))found.set(key,{name,selected:key==='clerk',positions:{},manual:false,confidence:{}});
+     let rec=found.get(key);
+     if(!rec.positions[n]||near){rec.positions[n]=[Math.max(.01,Math.min(.93,px/vp.width)),Math.max(.01,Math.min(.96,py/vp.height))];rec.confidence[n]=near?'line':'footer-text'}
+   }
+ }
+ // Also consider individual fragments: adjacent labels can share a PDF text row.
+ let candidates=[...fragments.map(it=>({...it,end:it.x+it.width})),...groups];
+ for(let it of candidates){let raw=it.str,label=normalizedLabel(raw),x=it.x,y=it.y;if(!label)continue;
+ if(/^(?:tmcmy[-_]?ims[-_]?f|[a-z]{2,6}[-_]?\d{2}[-_]\d{2})/i.test(label))continue;
+ if(/^(?:print\s+complete\s+store[ -]?in\s+doc|store[ -]?in\s+doc)$/i.test(label))continue;
+ // A role must be a short label, not a paragraph mentioning a role.
+ if(label.split(/\s+/).length>4||/[-–]\s*(?:trc|section|tmc)/i.test(label))continue;
+ let standard=[...standardRoles,...manualRoles].some(r=>fieldKey(r)===fieldKey(label))||/^(?:dept\.?\s*head|qc)$/i.test(label);
+ let hasKeyword=roleWords.test(label);
+ if(/\b(?:goods receiving report|stock.?in report|material issue report|receiving report)\b/i.test(label))continue;
+ if(!standard&&!hasKeyword)continue;
+ // Avoid matching role substrings inside long document text.
+ if(!standard&&!/^(?:qc|manager|supervisor|clerk|division|dept\.?\s*head|quality control|(?:prepared|checked|approved|verified|reviewed|received|issued|signed|authorized)\s+by|signature|keeper|withdrawal|approval|director|officer|witness|employee|applicant|pengurus|penyelia|kerani|tandatangan|签名|签署|批准|审核|经理|主管|经办|仓管|负责人)$/i.test(label))continue;
+ let near=lineNearLabel({x,y,end:it.end},lines,vp.width,vp.height);
+ // Labels such as "Dept. Head" may be separated from their underline in drawing commands.
+ if(!standard&&!near&&!/[:：]\s*$/.test(raw))continue;
+ let px=near?near.x0+Math.min(9,(near.x1-near.x0)*.08):it.end+12;
+ let py=near?near.y+3:y-9;
+ let key=fieldKey(label),pos=[Math.min(.92,Math.max(.01,px/vp.width)),Math.min(.96,Math.max(.01,py/vp.height))];
+ if(!found.has(key))found.set(key,{name:label,selected:key==='clerk',positions:{},manual:false,confidence:{}});
+ // A label without a trustworthy underline is listed, but NOT silently assigned a guessed location.
+ if(near){found.get(key).positions[n]=pos;found.get(key).confidence[n]='line'}
+ // PDF text is often selectable even when the underline is an image or a
+ // stroked path not exposed by PDF.js constructPath. For an isolated, short
+ // signature-role label in the bottom form footer, derive the signing baseline
+ // from the text baseline (not from a saved global position).
+ else if(y < vp.height*.22 && /^(?:division|dept\.?\s*head|clerk|manager|supervisor|qc|keeper|withdrawal|approval|(?:prepared|checked|approved|verified|signed|received)\s+by)$/i.test(label)){
+   let footerX=Math.min(vp.width-100,it.end+9), footerY=Math.max(10,y-9);
+   let footerPos=[footerX/vp.width,footerY/vp.height];
+   // Do not overwrite an actual underline match from another fragment.
+   if(!found.get(key).positions[n]){found.get(key).positions[n]=footerPos;found.get(key).confidence[n]='footer-text'}
+ }
+ }
+ }return [...found.values()]}
+$('mode').onchange=()=>{invalidate();$('customOptions').hidden=$('mode').value!=='custom';renderRoles();drawMark()};$('size').oninput=()=>{invalidate();$('sizeText').textContent=$('size').value+'%';drawMark()};
+$('files').onchange=async()=>{invalidate();let fs=[...$('files').files];fileFields={};$('fileInfo').textContent='已选择 '+fs.length+' 份 PDF：'+fs.map(x=>x.name).join('、');$('previewFile').replaceChildren();fs.forEach((f,i)=>{let o=document.createElement('option');o.value=i;o.textContent=f.name;$('previewFile').append(o)});await buildBatchGroups(fs);await openPreview(0)};
+$('previewFile').onchange=()=>openPreview(Number($('previewFile').value));$('previewPage').onchange=()=>{activePage=Number($('previewPage').value);renderPreview()};
+async function openPreview(i){let f=$('files').files[i];if(!f||!window.pdfjsLib)return;activeFile=i;batchStatus();try{if(activeDoc)await activeDoc.destroy();activeDoc=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;if(!fileFields[i])fileFields[i]=await scanFields(activeDoc);if(batchGroupOf(i).length===1||batchGroupOf(i)[0]===i){applyRememberedLayout();propagateBatchSelection(i)}filenameTemplateStatus();fieldFocus=null;renderRoles();if(typeof updateAssetUI==='function')updateAssetUI();$('previewPage').replaceChildren();for(let j=1;j<=activeDoc.numPages;j++){let o=document.createElement('option');o.value=j;o.textContent='第 '+j+' 页';$('previewPage').append(o)}activePage=1;previewType=await detectPdfType(activeDoc,f.name);await renderPreview()}catch(e){$('position').textContent='无法预览：'+e.message}}
+async function renderPreview(){if(!activeDoc)return;let page=await activeDoc.getPage(activePage),viewport=page.getViewport({scale:1}),width=Math.min(720,$('previewWrap').clientWidth),scale=width/viewport.width,vp=page.getViewport({scale});let c=$('preview'),dpr=devicePixelRatio||1;c.width=Math.round(vp.width*dpr);c.height=Math.round(vp.height*dpr);c.style.width=vp.width+'px';c.style.height=vp.height+'px';let ct=c.getContext('2d');await page.render({canvasContext:ct,viewport:page.getViewport({scale:scale*dpr})}).promise;previewWidth=vp.width;previewHeight=vp.height;previewPdfWidth=viewport.width;previewPdfHeight=viewport.height;calibrateSignatureLines(ct,dpr);drawMark();showStampOverlay()}
+// V1.5.5.0: detect the actual dark horizontal underline in the rendered, unsigned PDF.
+// The scan uses the source PDF canvas (not the blue/red selection overlays).
+function calibrateSignatureLines(ctx,dpr){
+ const fields=fileFields[activeFile]||[];
+ if(!fields.length||!previewWidth||!previewHeight)return;
+ const cw=ctx.canvas.width,ch=ctx.canvas.height;
+ const pixels=ctx.getImageData(0,0,cw,ch).data;
+ const dark=(x,y)=>{const j=(y*cw+x)*4;return pixels[j]<115&&pixels[j+1]<115&&pixels[j+2]<115&&pixels[j+3]>180};
+ for(const f of fields){
+  if(f.manual||!f.positions||!f.positions[activePage]||!['line','footer-text'].includes(f.confidence&&f.confidence[activePage]))continue;
+  const p=f.positions[activePage];const x0=Math.round(p[0]*cw),cy=Math.round((1-p[1])*ch);
+  const a=Math.max(0,x0+Math.round(13*dpr)),b=Math.min(cw-1,x0+Math.round(83*dpr));
+  if(b-a<24*dpr)continue;
+  let bestY=-1,bestScore=0;
+  const radius=Math.round(18*dpr);
+  for(let y=Math.max(1,cy-radius);y<Math.min(ch-1,cy+radius);y++){
+   let score=0;for(let x=a;x<=b;x+=Math.max(1,Math.round(dpr)))if(dark(x,y))score++;
+   // Prefer a strong uninterrupted underline, rather than letter strokes or footer text.
+   if(score>bestScore){bestScore=score;bestY=y}
+  }
+  const samples=Math.ceil((b-a+1)/Math.max(1,Math.round(dpr)));
+  if(bestY>=0&&bestScore>samples*.70){
+   p[1]=Math.max(.005,Math.min(.995,1-bestY/ch));
+   f.confidence[activePage]='line';
+  }
+ }
+}
+$('preview').onclick=e=>{let f=currentField();if(!f)return;let r=$('preview').getBoundingClientRect();f.positions[activePage]=[Math.min(.90,Math.max(0,(e.clientX-r.left)/r.width)),Math.min(.95,Math.max(0,1-(e.clientY-r.top)/r.height))];invalidate();drawMark()};
+function datePlacementFor(f){return (f&&datePlacements[fieldKey(f.name)])==='right'?'right':'bottom'}
+function syncDatePlacement(){let f=currentField();$('datePlacement').value=datePlacementFor(f)}
+$('datePlacement').addEventListener('change',()=>{let f=currentField();if(!f)return;datePlacements[fieldKey(f.name)]=$('datePlacement').value;localStorage.setItem(DPK,JSON.stringify(datePlacements));invalidate();drawMark()});
+function drawMark(){let mark=$('mark'),f=currentField();syncDatePlacement();if(!f){mark.style.display='none';$('otherMarks').replaceChildren();renderSignatureOverlay();return}if(!f.positions[activePage]){mark.style.display='none';$('otherMarks').replaceChildren();renderSignatureOverlay();$('position').textContent='⚠ '+f.name+' 未能可靠自动定位；请勿直接签署此栏位。';return}let coords=f.positions[activePage],w=previewWidth,h=previewHeight,scale=Number($('size').value)/100,iw=95*scale,ih=27*scale;mark.style.display='block';mark.style.width=iw+'px';mark.style.height=ih+'px';mark.style.left=Math.max(0,Math.min(w-iw,coords[0]*w))+'px';mark.style.top=Math.max(0,Math.min(h-ih,(1-coords[1])*h-ih))+'px';mark.replaceChildren();if($('addDate').checked&&dateLabel()){let d=document.createElement('div');d.style.cssText='position:absolute;left:0;white-space:nowrap;background:#ffffffdc;color:#222;font:12px Arial,sans-serif;pointer-events:none';if(datePlacementFor(f)==='right'){d.style.left='calc(100% + '+(2*96/25.4)+'px)';d.style.top='50%';d.style.transform='translateY(-50%)'}else{d.style.top='calc(100% + '+(2*96/25.4)+'px)'}d.textContent=dateLabel();mark.append(d)}$('position').textContent='当前预览：'+f.name+'。已根据文字或横线自动定位（请检查预览）；已勾选 '+selectedFields().length+' 个签名栏，请核对位置。';renderOtherMarks()}
+function renderOtherMarks(){let layer=$('otherMarks');layer.replaceChildren();let current=currentField();if(!current)return;let w=previewWidth,h=previewHeight,scale=Number($('size').value)/100,iw=95*scale,ih=27*scale;for(let f of selectedFields()){if(f===current)continue;let coords=f.positions[activePage];if(!coords)continue;let el=document.createElement('div');el.style.cssText='position:absolute;box-sizing:border-box;border:2px solid #1675c5;background:#1675c51a;pointer-events:auto;cursor:pointer;overflow:visible;';el.style.width=iw+'px';el.style.height=ih+'px';el.style.left=Math.max(0,Math.min(w-iw,coords[0]*w))+'px';el.style.top=Math.max(0,Math.min(h-ih,(1-coords[1])*h-ih))+'px';let title=document.createElement('span');title.textContent=f.name;title.style.cssText='position:absolute;bottom:100%;left:-2px;background:#1675c5;color:white;font:11px Arial;padding:2px 4px;white-space:nowrap';el.append(title);el.onclick=()=>{fieldFocus=f.name;drawMark()};layer.append(el)}renderSignatureOverlay()}
+// V1.5.5.0: Draw signature ink in preview using the SAME PDF geometry as export.
+// Selection boxes remain independent; only the actual ink is positioned here.
+function renderSignatureOverlay(){
+ const wrap=$('previewWrap');let layer=$('signatureInkOverlay');
+ if(!layer){layer=document.createElement('div');layer.id='signatureInkOverlay';layer.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden';wrap.append(layer)}
+ layer.replaceChildren();
+ if(activeFile<0||previewPdfWidth<=1||previewWidth<=1)return;
+ const fields=selectedFields().filter(f=>f.positions&&f.positions[activePage]);
+ const pdfW=previewPdfWidth,pdfH=previewPdfHeight,pxPerPt=previewWidth/pdfW,scale=Number($('size').value)/100;
+ for(const f of fields){
+  const p=f.positions[activePage],x=pdfW*p[0],y=pdfH*p[1],asset=assetById(fieldAssetMap[activeFile+':'+f.name]);
+  let imageData=null,iw=0,ih=0,isTyped=false;
+  if(asset&&asset.typedProfile){
+   const fontPx=Number(asset.fontSize)||28,key=asset.font||'greatvibes';
+   const c=cropInkCanvas(renderAnyNameCanvas(asset.name,key,fontPx));
+   imageData=c.toDataURL('image/png');iw=c.width;ih=c.height;isTyped=true;
+  }else if(!asset&&signByName()&&nameLabel()){
+   const c=renderNameCanvas(nameLabel());imageData=c.toDataURL('image/png');iw=c.width;ih=c.height;isTyped=true;
+  }else if(asset){imageData=asset.data}else if(signature){imageData=signature}
+  if(!imageData)continue;
+  const nextStarts=fields.filter(other=>other!==f&&other.positions[activePage]&&other.positions[activePage][0]>p[0]+.012&&Math.abs(other.positions[activePage][1]-p[1])<.035).map(other=>pdfW*(other.positions[activePage][0]-p[0])-12);
+  const availableWidth=Math.max(20,Math.min(pdfW*.19,...nextStarts));
+  const im=document.createElement('img');im.src=imageData;
+  const place=(ratio)=>{
+   let w,h;
+   if(isTyped){const d=typedPdfDimensions({width:iw,height:ih,fontPx:asset&&asset.typedProfile?Number(asset.fontSize)||28:chosenSize()},pdfW,x,scale,availableWidth);w=d.width;h=d.height}
+   else {const naturalW=im.naturalWidth||1,naturalH=im.naturalHeight||1;const r=Math.min(pdfW*.14/naturalW,pdfH*.046/naturalH)*scale;w=naturalW*r;h=naturalH*r}
+   im.style.cssText='position:absolute;pointer-events:none;object-fit:fill;left:'+(x*pxPerPt)+'px;top:'+((pdfH-y-(isTyped?3:0)-h)*pxPerPt)+'px;width:'+(w*pxPerPt)+'px;height:'+(h*pxPerPt)+'px';
+  };
+  if(isTyped)place();else im.onload=place;
+  layer.append(im);
+ }
+}
+function invalidate(){previewConfirmed=false;$('reviewed').checked=false}let dragging=null;$('mark').addEventListener('pointerdown',e=>{dragging={x:e.clientX,y:e.clientY,left:parseFloat($('mark').style.left),top:parseFloat($('mark').style.top)};$('mark').setPointerCapture(e.pointerId)});$('mark').addEventListener('pointermove',e=>{if(!dragging)return;let el=$('mark'),w=parseFloat(el.style.width),h=parseFloat(el.style.height);el.style.left=Math.max(0,Math.min(previewWidth-w,dragging.left+e.clientX-dragging.x))+'px';el.style.top=Math.max(0,Math.min(previewHeight-h,dragging.top+e.clientY-dragging.y))+'px'});$('mark').addEventListener('pointerup',()=>{if(!dragging)return;dragging=null;let f=currentField();if(!f)return;let el=$('mark'),h=parseFloat(el.style.height),x=parseFloat(el.style.left)/previewWidth,y=1-(parseFloat(el.style.top)+h)/previewHeight;f.positions[activePage]=[x,y];savedPositions['field:'+fieldKey(f.name)]=[x,y];localStorage.setItem(PK,JSON.stringify(savedPositions));invalidate();drawMark()});
+$('confirmPreview').onclick=()=>{if(selectedFields().some(f=>!assetById(fieldAssetMap[activeFile+':'+f.name]))){if(signByName()&&!nameLabel())return alert('请先输入本人姓名');if(!signByName()&&!signature)return alert('请先保存签名')}let missing=selectedFields().filter(f=>!f.positions[activePage]);if(missing.length)return alert('这些签名栏尚未定位：'+missing.map(f=>f.name).join('、'));previewConfirmed=true;propagateBatchSelection(activeFile);$('reviewed').checked=true;alert('已确认当前页 '+selectedFields().length+' 个签名栏位置。请检查其他页面及文件。')};
+
+function classify(text,filename=''){const t=String(text||'').replace(/[\s\u0000-\u001f]+/g,'').toLowerCase(),n=String(filename||'').toLowerCase();if(t.includes('tmcmy-ims-f18-14')||t.includes('printcompletestore-indoc'))return 'stock';if(t.includes('tmcmy-ims-f18-13')||t.includes('w/omaterialissuingnote'))return 'issue';if(/stock[ -]?in|compacting/i.test(n))return 'stock';if(/material[ -]?issue|issuing[ -]?note/i.test(n))return 'issue';return null}async function detectPdfType(pdf,filename){let txt='';for(let n=1;n<=Math.min(pdf.numPages,2);n++){let t=await(await pdf.getPage(n)).getTextContent();txt+=' '+t.items.map(x=>x.str).join(' ')}return classify(txt,filename)}const coords={stock:{division:.105,head:.34,clerk:.555},issue:{withdrawal:.055,keeper:.25,approval:.43,clerk:.83}};function safeName(s){return s.replace(/[\\/:*?"<>|\x00-\x1f]/g,'_')}function download(blob,name){let url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
+
+function showStampOverlay(){let old=document.getElementById('stampOverlay');if(old)old.remove();let sp=stampPositions[activeFile+':'+activePage],a=assetById($('stampAsset').value);if(!$('useStamp').checked||!sp||!a)return;let im=document.createElement('img');im.id='stampOverlay';im.src=a.data;let width=Number($('stampWidth').value),left=sp[0]*previewWidth-width/2,top=(1-sp[1])*previewHeight-width/2;im.style.cssText='position:absolute;pointer-events:none;z-index:4;object-fit:contain;width:'+width+'px;max-height:200px;left:'+left+'px;top:'+top+'px';$('previewWrap').append(im)}
+// V1.5.3: local, opt-in image signature and stamp library.
+const ASSET_KEY='pdf_auto_sign_v150_assets';
+let assetList=[],fieldAssetMap={},stampPositions={},placingStamp=false;
+try{let v=JSON.parse(localStorage.getItem(ASSET_KEY)||'[]');if(Array.isArray(v))assetList=v.filter(a=>a&&typeof a.id==='string'&&typeof a.data==='string'&&/^data:image\/(png|jpeg);base64,/.test(a.data)).slice(0,40)}catch(e){}
+function persistAssets(){localStorage.setItem(ASSET_KEY,JSON.stringify(assetList))}
+function assetById(id){return assetList.find(a=>a.id===id)}
+function assetFieldKey(){let f=currentField();return activeFile+':'+(f?f.name:'')}
+function assetOptions(el,items,first){let prev=el.value;el.replaceChildren();for(let [v,label] of [[...first],...items.map(a=>[a.id,a.name])]){let o=document.createElement('option');o.value=v;o.textContent=label;el.append(o)}if([...el.options].some(o=>o.value===prev))el.value=prev}
+function updateAssetUI(){assetOptions($('assetLibrary'),assetList,['','-- 请选择 --']);assetOptions($('fieldAsset'),assetList.filter(a=>a.type==='signature'),['','本人签名 / My signature']);assetOptions($('stampAsset'),assetList.filter(a=>a.type==='stamp'),['','-- 选择印章 --']);$('fieldAsset').value=fieldAssetMap[assetFieldKey()]||'';renderSignerAssignments();}
+function renderSignerAssignments(){
+ const root=$('signerAssignments');if(!root)return;root.replaceChildren();
+ const fields=selectedFields();if(!fields.length){let p=document.createElement('p');p.className='hint';p.textContent='请先勾选要签署的栏位 / Select signature fields first';root.append(p);return}
+ for(const f of fields){
+  const key=activeFile+':'+f.name,row=document.createElement('label');row.className='signer-assignment';
+  const title=document.createElement('span');title.textContent=f.name;
+  const sel=document.createElement('select');sel.dataset.field=f.name;
+  const opt=document.createElement('option');opt.value='';opt.textContent='本人签名 / My signature';sel.append(opt);
+  for(const a of assetList.filter(a=>a.type==='signature')){let o=document.createElement('option');o.value=a.id;o.textContent=a.name;sel.append(o)}
+  if(assetById(fieldAssetMap[key]))sel.value=fieldAssetMap[key];
+  sel.onchange=()=>{fieldAssetMap[key]=sel.value;const current=currentField();if(current&&current.name===f.name)$('fieldAsset').value=sel.value;invalidate();drawMark()};
+  row.append(title,sel);root.append(row);
+ }
+}
+function syncFieldAsset(){updateAssetUI()}
+$('fieldAsset').onchange=()=>{fieldAssetMap[assetFieldKey()]=$('fieldAsset').value;renderSignerAssignments();invalidate();drawMark()};
+$('tmcRoles').addEventListener('change',()=>setTimeout(syncFieldAsset,0));
+$('previewFile').addEventListener('change',()=>setTimeout(syncFieldAsset,0));
+$('addAsset').onclick=async()=>{let f=$('assetFile').files[0],name=$('assetName').value.trim();if(!name||!f)return alert('请输入名称并选择 PNG/JPG 图片');if(!['image/png','image/jpeg'].includes(f.type)||f.size>2*1024*1024)return alert('仅支持小于 2MB 的 PNG/JPG 图片');let data=await new Promise((res,rej)=>{let r=new FileReader;r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});let a={id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,type:$('assetType').value,data};assetList.push(a);try{persistAssets();updateAssetUI();$('assetLibrary').value=a.id;$('assetFile').value='';$('assetName').value='';alert('已保存图片 / Saved')}catch(e){assetList.pop();alert('设备储存空间不足：'+e.message)}};
+$('removeAsset').onclick=()=>{let id=$('assetLibrary').value;if(!id||!confirm('确定删除这张图片？'))return;assetList=assetList.filter(a=>a.id!==id);persistAssets();for(let k in fieldAssetMap)if(fieldAssetMap[k]===id)delete fieldAssetMap[k];updateAssetUI()};
+$('stampWidth').oninput=()=>{$('stampWidthLabel').textContent=$('stampWidth').value;showStampOverlay()};
+$('placeStamp').onclick=()=>{if(!assetById($('stampAsset').value))return alert('请先选择公司印章');$('useStamp').checked=true;placingStamp=true;$('stampStatus').textContent='请在下方 PDF 预览上点击盖章位置 / Tap PDF preview to place stamp';};
+$('clearStamp').onclick=()=>{delete stampPositions[activeFile+':'+$('previewPage').value];placingStamp=false;$('stampStatus').textContent='已清除当前页印章位置';invalidate();renderPreview()};
+$('preview').addEventListener('pointerdown',e=>{if(!placingStamp)return; e.stopImmediatePropagation();e.preventDefault();let r=$('preview').getBoundingClientRect();stampPositions[activeFile+':'+$('previewPage').value]=[(e.clientX-r.left)/r.width,1-(e.clientY-r.top)/r.height];placingStamp=false;$('stampStatus').textContent='已设定印章位置 / Stamp position saved';invalidate();renderPreview()},true);
+// Crop only typed-name signature images to their actual ink bounds.
+// Previous versions stored a tall transparent canvas, causing some fonts to float above the PDF signature line.
+async function cropTypedSignature(data){
+ const im=new Image();im.src=data;await im.decode();
+ const canvas=document.createElement('canvas');canvas.width=im.naturalWidth;canvas.height=im.naturalHeight;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(im,0,0);
+ const {data:rgba,width,height}=ctx.getImageData(0,0,canvas.width,canvas.height);
+ let left=width,top=height,right=-1,bottom=-1;
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+  if(rgba[(y*width+x)*4+3]>12){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y)}
+ }
+ if(right<left)return data;
+ const pad=2;left=Math.max(0,left-pad);top=Math.max(0,top-pad);
+ right=Math.min(width-1,right+pad);bottom=Math.min(height-1,bottom+pad);
+ const cropped=document.createElement('canvas');cropped.width=right-left+1;cropped.height=bottom-top+1;
+ cropped.getContext('2d').drawImage(canvas,left,top,cropped.width,cropped.height,0,0,cropped.width,cropped.height);
+ return cropped.toDataURL('image/png');
+}
+async function embeddedAsset(doc,id){let a=assetById(id);if(!a)throw Error('找不到签名或印章图片');let data=a.typedProfile?await cropTypedSignature(a.data):a.data;return data.startsWith('data:image/png')?doc.embedPng(data):doc.embedJpg(data)}
+$('backupAssets').onclick=()=>{let blob=new Blob([JSON.stringify({app:'PDF Auto Sign',version:'1.5.0',assets:assetList})],{type:'application/json'});download(blob,'PDF_Auto_Sign_Assets_Backup.json')};
+$('restoreAssetsBtn').onclick=()=>$('restoreAssetsFile').click();
+$('restoreAssetsFile').onchange=async()=>{try{let f=$('restoreAssetsFile').files[0];if(!f||f.size>30*1024*1024)throw Error('备份文件过大');let v=JSON.parse(await f.text());if(v.app!=='PDF Auto Sign'||!Array.isArray(v.assets))throw Error('备份格式不正确');let valid=v.assets.filter(a=>a&&typeof a.name==='string'&&['signature','stamp'].includes(a.type)&&/^data:image\/(png|jpeg);base64,/.test(a.data)&&a.data.length<3e6).slice(0,40);if(!confirm('恢复将合并 '+valid.length+' 张图片到本设备，继续？'))return;let ids=new Set(assetList.map(a=>a.id));for(let a of valid){if(ids.has(a.id))a.id='restored'+Math.random().toString(36).slice(2);assetList.push(a)}persistAssets();updateAssetUI();alert('恢复成功')}catch(e){alert('恢复失败：'+e.message)}};
+updateAssetUI();
+
+$('run').onclick=async()=>{let fs=[...$('files').files],roles=[],mode=$('mode').value;if(!fs.length)return alert('请先选择 PDF');let fieldsToSign=Object.entries(fileFields).flatMap(([i,fields])=>fields.filter(f=>f.selected).map(f=>({i,f})));let needsOwn=fieldsToSign.some(({i,f})=>!assetById(fieldAssetMap[i+':'+f.name]));if(needsOwn&&signByName()&&!nameLabel())return alert('有栏位使用本人姓名，请先输入姓名');if(needsOwn&&!signByName()&&!signature)return alert('有栏位使用本人签名，请先保存签名或为该栏位指定已授权图片');if(!Object.values(fileFields).some(fields=>fields.some(f=>f.selected)))return alert('请至少勾选一个签名栏');if(!$('authorized').checked)return alert('请先确认签名授权');if(!previewConfirmed||!$('reviewed').checked)return alert('请先预览并确认签名位置');if(!window.PDFLib||!window.JSZip||!window.pdfjsLib)return alert('PDF 处理组件未加载，请联网刷新');let btn=$('run'),zip=new JSZip(),errors=[],success=0,names=new Set();btn.disabled=true;try{for(let i=0;i<fs.length;i++){let f=fs[i];$('status').textContent=`处理中 ${i+1}/${fs.length}：${f.name}`;try{let bytes=await f.arrayBuffer(),doc=await PDFLib.PDFDocument.load(bytes),pages=doc.getPages();if(!pages.length)throw Error('PDF 没有页面');let fields=fileFields[i]||[];if(!fields.length){let scanDoc=await pdfjsLib.getDocument({data:new Uint8Array(bytes.slice(0))}).promise;try{fields=await scanFields(scanDoc);fileFields[i]=fields}finally{await scanDoc.destroy()}}let chosen=fields.filter(f=>f.selected);if(!chosen.length)throw Error('此文件未选择签名栏');let img=signByName()||!signature?null:await doc.embedPng(signature);let fieldImages={},typedNameImages={};for(let ff of chosen){
+ let aid=fieldAssetMap[i+':'+ff.name],asset=assetById(aid);
+ if(asset&&asset.typedProfile===true){
+  const px=Number(asset.fontSize)||28, key=asset.font||'greatvibes';
+  const family=fontFamilies[key]||fontFamilies.greatvibes;
+  if(['greatvibes','allura','alexbrush','dancing'].includes(key))await document.fonts.load(px+'px '+family,asset.name);
+  const canvas=cropInkCanvas(renderAnyNameCanvas(asset.name,key,px));
+  typedNameImages[ff.name]={image:await doc.embedPng(canvas.toDataURL('image/png')),width:canvas.width,height:canvas.height,fontPx:px};
+ }else if(aid)fieldImages[ff.name]=await embeddedAsset(doc,aid);
+}let font=await doc.embedFont(PDFLib.StandardFonts.Helvetica);let stampDate=$('addDate').checked?dateLabel():'';let stampName=nameLabel(),nameImage=null,nameW=0,nameH=0;
+if(signByName()&&chosen.some(ff=>!fieldImages[ff.name])){
+  await ensureNameFont();let c=renderNameCanvas(stampName);nameW=c.width;nameH=c.height;nameImage=await doc.embedPng(c.toDataURL('image/png'));
+}
+if($('addDate').checked&&!stampDate)throw Error('请选择有效签名日期');
+function drawSignature(page,x,y,iw,ih,field,dateAnchorY=y){
+ const fontSize=9;
+ let fieldImg=fieldImages[field.name],typed=typedNameImages[field.name];if(typed){page.drawImage(typed.image,{x,y,width:iw,height:ih});}else if(fieldImg){page.drawImage(fieldImg,{x,y,width:iw,height:ih});}else {if(!signByName()&&!img)throw Error('此栏位未选择可用签名');
+  if(signByName()){
+   let textWidth=iw;
+   if(textWidth<=0)throw Error('姓名超出页面');
+   let textHeight=ih;
+   if(y+textHeight>page.getHeight())throw Error('姓名超出页面');
+   page.drawImage(nameImage,{x,y,width:textWidth,height:textHeight});
+ }else page.drawImage(img,{x,y,width:iw,height:ih});}
+ if(stampDate){const gap=2*72/25.4;let dx=x,dy=dateAnchorY-gap-fontSize;if(datePlacementFor(field)==='right'){dx=x+iw+gap;dy=dateAnchorY+Math.max(0,(ih-fontSize)/2)}if(dy<0||dx<0||dx+font.widthOfTextAtSize(stampDate,fontSize)>page.getWidth()||dy+fontSize>page.getHeight())throw Error('日期超出页面，请调整签名位置或缩小间距');page.drawText(stampDate,{x:dx,y:dy,size:fontSize,font,color:PDFLib.rgb(.12,.12,.12)})}
+
+}
+let count=0;for(let pi=0;pi<pages.length;pi++){let page=pages[pi],w=page.getWidth(),h=page.getHeight(),scale=Number($('size').value)/100,ratio=img?Math.min(w*.14/img.width,h*.046/img.height)*scale:1,iw=img?img.width*ratio:w*.12*scale,ih=img?img.height*ratio:h*.035*scale;for(let f of chosen){let p=f.positions[pi+1];if(!p){continue}let x=w*p[0],y=h*p[1];let fieldW=iw,fieldH=ih;const nextStarts=chosen.filter(other=>other!==f&&other.positions[pi+1]&&other.positions[pi+1][0]>p[0]+.012&&Math.abs(other.positions[pi+1][1]-p[1])<.035).map(other=>w*(other.positions[pi+1][0]-p[0])-12);const availableInkWidth=Math.max(20,Math.min(w*.19,...nextStarts));if(chosen.some(other=>other!==f&&other.positions[pi+1]&&Math.abs(other.positions[pi+1][0]-p[0])<.035&&Math.abs(other.positions[pi+1][1]-p[1])<.025))throw Error('多个签名栏位置重叠，请检查 '+f.name+' 的定位');if(x+iw>w||y+ih>h)throw Error(f.name+' 签名超出页面');{let chosenImg=fieldImages[f.name];if(typedNameImages[f.name]){
+  // The primary and additional typed names use the exact same canvas, sizing and baseline.
+  const typed=typedNameImages[f.name];
+  const dims=typedPdfDimensions(typed,w,x,scale,availableInkWidth);fieldW=dims.width;fieldH=dims.height;
+ }else if(!chosenImg&&signByName()){
+  const dims=typedPdfDimensions({width:nameW,height:nameH,fontPx:chosenSize()},w,x,scale,availableInkWidth);fieldW=dims.width;fieldH=dims.height;
+ }else if(chosenImg){
+  let r=Math.min(w*.14/chosenImg.width,h*.046/chosenImg.height)*scale;
+  fieldW=chosenImg.width*r;fieldH=chosenImg.height*r;
+ }if(x+fieldW>w||y+fieldH>h)throw Error(f.name+' 签名超出页面');// Typed-name images are tightly cropped to their visible ink. Their bottom edge
+// is not the writing baseline; lift them relative to the detected signature line.
+// Keep the original anchor for dates, so changing the ink alignment does not move dates.
+let asset=assetById(fieldAssetMap[i+':'+f.name]);
+let inkY=y+((typedNameImages[f.name]||(!chosenImg&&signByName()))?3:0);
+if(inkY+fieldH>h)throw Error(f.name+' 签名超出页面');
+drawSignature(page,x,inkY,fieldW,fieldH,f,y);}count++}if($('useStamp').checked){let sp=stampPositions[i+':'+(pi+1)];if(sp){let stamp=await embeddedAsset(doc,$('stampAsset').value);let sw=Math.min(Number($('stampWidth').value)*w/Math.max(previewWidth||w,1),w*.55),sh=sw*stamp.height/stamp.width;let sx=w*sp[0]-sw/2,sy=h*sp[1]-sh/2;if(sx<0||sy<0||sx+sw>w||sy+sh>h)throw Error('印章超出页面，请重新定位');page.drawImage(stamp,{x:sx,y:sy,width:sw,height:sh});count++}}}if(!count)throw Error('没有可用签名位置');let output=await doc.save(),base=safeName(f.name.replace(/\.pdf$/i,'')),name=base+'_Signed.pdf',n=2;while(names.has(name))name=base+'_Signed_'+n+++'.pdf';names.add(name);zip.file(name,output);success++}catch(e){errors.push(f.name+'：'+e.message)}}if(success)download(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'PDF_Auto_Sign_V1_5_4_7_'+new Date().toISOString().slice(0,10)+'.zip');$('status').textContent=`完成：${success}/${fs.length} 份 PDF。${success?'请打开生成文件逐页核对。':''}`+(errors.length?'\n跳过：\n'+errors.join('\n'):'')}catch(e){$('status').textContent='失败：'+e.message}finally{btn.disabled=false}};
+
+// V1.5.5.0: typed-name signers are stored as locally saved signature images.
+// This reuses the existing per-field assignment and PDF embedding pipeline.
+const extraName=$('extraPersonName'),extraFont=$('extraPersonFont'),extraSize=$('extraPersonSize');
+function extraFamily(){return fontFamilies[extraFont.value]||fontFamilies.greatvibes}
+function extraFontSpec(px){return (extraFont.value==='italic'?'italic ':'')+px+'px '+extraFamily()}
+function extraPreview(){
+ $('extraPersonSizeText').textContent=extraSize.value+' px';
+ const c=$('extraPersonPreview'),dpr=Math.min(window.devicePixelRatio||1,3),width=Math.max(250,c.clientWidth||400);
+ c.width=Math.round(width*dpr);c.height=Math.round(100*dpr);
+ const g=c.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,width,100);g.fillStyle='#222';g.font=extraFontSpec(Number(extraSize.value));g.textBaseline='middle';g.fillText(extraName.value.trim()||'Your name',12,49);
+}
+function extraList(){
+ const sel=$('extraPeopleList'),old=sel.value;sel.replaceChildren();
+ const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='-- Select saved signer --';sel.append(placeholder);
+ assetList.filter(a=>a.typedProfile===true&&a.type==='signature').forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.name;sel.append(o)});
+ if([...sel.options].some(o=>o.value===old))sel.value=old;
+}
+async function extraSave(){
+ const name=extraName.value.trim();if(!name)return alert('请输入第二位签名人的姓名 / Enter signer name');
+ const px=Number(extraSize.value),family=extraFamily();
+ if(['greatvibes','allura','alexbrush','dancing'].includes(extraFont.value)){
+  await document.fonts.load(px+'px '+family,name);
+  if(!document.fonts.check(px+'px '+family,name))throw Error('字体未加载，请联网后重试 / Font not loaded');
+ }
+ const c=document.createElement('canvas'),g=c.getContext('2d');g.font=extraFontSpec(px);
+ const textWidth=Math.ceil(g.measureText(name).width),w=Math.max(80,textWidth+30),h=Math.ceil(px*1.8+14);
+ c.width=w*2;c.height=h*2;const ct=c.getContext('2d');ct.scale(2,2);ct.font=extraFontSpec(px);ct.textBaseline='middle';ct.fillStyle='#222';ct.fillText(name,12,h/2);
+ const data=await cropTypedSignature(c.toDataURL('image/png'));
+ const existing=assetList.find(a=>a.typedProfile===true&&a.name===name);
+ if(existing){if(!confirm('已有同名签名人，是否更新字体及字号？ / Replace existing signer?'))return;existing.data=data;existing.font=extraFont.value;existing.fontSize=px}
+ else assetList.push({id:'typed_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),type:'signature',name,data,typedProfile:true,font:extraFont.value,fontSize:px});
+ try{persistAssets()}catch(e){alert('保存失败：'+e.message);return}
+ updateAssetUI();extraList();const found=assetList.find(a=>a.typedProfile&&a.name===name);if(found)$('extraPeopleList').value=found.id;
+ alert('已保存签名人。请在③A为每个签名栏选择对应姓名。');
+}
+$('savePrimaryAsSigner').onclick=async()=>{
+ const name=$('signName').value.trim();if(!name)return alert('请先输入本人姓名');
+ extraName.value=name;extraFont.value=$('nameFont').value;extraSize.value=$('nameFontSize').value;
+ extraPreview();await extraSave();
+};
+$('saveExtraPerson').onclick=()=>extraSave().catch(e=>alert('无法保存：'+e.message));
+$('deleteExtraPerson').onclick=()=>{
+ const id=$('extraPeopleList').value;if(!id)return;
+ if(!confirm('删除这位签名人的姓名签名？'))return;
+ assetList=assetList.filter(a=>a.id!==id);for(const k of Object.keys(fieldAssetMap))if(fieldAssetMap[k]===id)delete fieldAssetMap[k];
+ persistAssets();updateAssetUI();extraList();invalidate();drawMark();
+};
+$('extraPeopleList').onchange=()=>{const a=assetById($('extraPeopleList').value);if(!a)return;extraName.value=a.name;extraFont.value=a.font||'greatvibes';extraSize.value=a.fontSize||28;extraPreview()};
+for(const el of [extraName,extraFont,extraSize])el.addEventListener('input',extraPreview);
+extraList();extraPreview();
+
+if(document.fonts){document.fonts.addEventListener('loadingdone',()=>{updateNamePreview();drawMark()})}
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(()=>{});
+</script>
+<script>
+(()=>{
+ const translations={"日期位置（当前签名栏）":"Date position (selected field)","日期间距":"Date spacing","签名下方 / Bottom":"Below signature / Bottom","签名右侧 / Right":"Right of signature / Right","在签名或姓名旁添加日期":"Add date to signature or name","日期默认当天，格式 DD/MM/YYYY；可为不同签名栏选择下方或右侧。签名前请逐页核对。":"Date defaults to today (DD/MM/YYYY). Choose below or right for each field. Check every page.","自动识别 PDF 签名栏（支持其他公司）":"Automatically detect signature fields (all companies)","＋ 手动新增签名栏":"＋ Add signature field manually","签名栏名称 / Field name":"Signature field name","独立 App · 通用 PDF 批量签名": "Standalone App · Batch PDF Signing", "① 选择 PDF（可多选）": "① Select PDFs (multiple files)", "支持一次选择多份 PDF，完成后下载 ZIP。": "Select multiple PDFs and download the completed ZIP.", "② 保存本人签名": "② Save Your Signature", "签名只保存在本机浏览器。其他使用者在自己的设备上独立保存。": "Your signature is saved only in this browser. Other users save their own signatures on their devices.", "清除画板": "Clear Pad", "保存签名": "Save Signature", "删除已存签名": "Delete Saved Signature", "尚未保存签名": "No signature saved", "③ 选择签署方式与个人设置": "③ Signing Method & Personal Settings", "本次签署方式": "Signing method", "方式 1：手写签名": "Option 1: Draw signature", "方式 2：输入姓名（不显示手写签名）": "Option 2: Type name (no drawn signature)", "本人姓名": "Your name", "姓名字体": "Name font", "姓名字体大小": "Name font size", "姓名字体预览（与导出的 PDF 使用同一张透明文字图片）：": "Name preview (the same transparent text image is used in the exported PDF):", "新增的四种艺术字体首次使用需要联网加载；字体未加载成功时会使用系统备用字体。请等待字体加载后再预览和导出。中文会使用设备支持的回退字体。": "The four artistic fonts require an internet connection on first use. A fallback font will be used if loading fails. Wait for fonts to load before previewing or exporting. Chinese characters use a device fallback font.", "两种方式二选一：选择手写签名时只显示签名；选择输入姓名时只显示姓名。两种方式都可单独选择是否添加日期。每个签名栏都使用当前选定的方式。": "Choose either drawn signature or typed name, not both. You may add a date with either method. All selected signature fields use the chosen method.", "备份个人设置（JSON）": "Back Up Settings (JSON)", "恢复个人设置": "Restore Settings", "备份包含你的手写签名图片，请像保护签名原件一样妥善保管，不要公开分享备份文件。": "Backups include your signature image. Protect the backup and do not share it publicly.", "④ 选择文件模板与签名栏": "④ PDF Template & Signature Fields", "签名模式": "Template mode", "自动识别 PDF 签名栏（支持其他公司）": "Auto-detect PDF signature fields (supports other companies)", "TMC Stock-in 入库单": "TMC Stock-in Form", "TMC Material Issue Note 领料单": "TMC Material Issue Note", "自定义通用 PDF 模板": "Custom PDF Template", "勾选的签名栏将使用当前选择的签署方式（手写签名或输入姓名）。自动模式会忽略与文件类型不符的栏位。": "Checked fields use the selected signing method. Auto mode ignores fields that do not belong to the detected form.", "自定义模板名称": "Custom template name", "已保存模板": "Saved templates", "新建模板": "New template", "保存当前签名位置为模板": "Save Position as Template", "删除所选模板": "Delete Selected Template", "请先选择 PDF，在下面预览上点击要签名的位置；每次点击只设置一个签名位置。批量文件需版式一致。": "Select a PDF and tap the preview to place a signature. Each tap sets one position. Batch files must share the same layout.", "⑤ 预览签名位置": "⑤ Preview Signature Position", "在签名或姓名旁添加日期": "Add date below signature or name", "签名日期（可修改）": "Signing date (editable)", "日期向下距离": "Date spacing below signature", "日期默认当天，格式 DD/MM/YYYY；可为不同签名栏选择下方或右侧。签名前请逐页核对。": "Date defaults to today in DD/MM/YYYY format, below the signature. Check each page before signing.", "预览文件": "Preview file", "预览页码": "Preview page", "请先选择 PDF。自定义模式：点击页面放置签名。": "Select a PDF first. In Custom mode, tap the page to position your signature.", "签名大小": "Signature size", "已识别的签名栏会自动定位，不必拖动。红框显示当前栏位，蓝框显示其他已选栏位；只有识别不确定时才需人工复核。": "The red box shows your signature. Drag it to reposition. Each field stores its own position. Review every page.", "确认当前预览位置": "Confirm Preview Position", "⑥ 确认并批量签名": "⑥ Confirm & Batch Sign", "我确认只使用本人签名或已获得明确授权，并确认所选签名栏有权由我签署。": "I confirm this is my signature or I have explicit authorization, and I am authorized to sign the selected fields.", "我已预览并确认签名位置。": "I have reviewed and confirmed the signature position.", "批量生成已签名 PDF（ZIP）": "Generate Signed PDFs (ZIP)", "仅在本机浏览器处理文件；处理库首次需要联网。生成的是可见图片签名，不是证书型数字签章。原始 PDF 不修改；请逐页核对签名。共用设备请删除保存的签名。": "Files are processed locally in your browser; libraries need internet on first load. These are visible image signatures, not certificate-based digital signatures. Originals remain unchanged. Review every page and delete saved signatures on shared devices.", "与 MyMoney 完全独立": "Completely separate from MyMoney", "Great Vibes（默认）": "Great Vibes (default)", "经典衬线体": "Classic Serif", "英文斜体": "English Italic", "请输入本人姓名（支持中文 / English / Bahasa Melayu）": "Enter your name (中文 / English / Bahasa Melayu)", "例如：其他公司收货单": "e.g. Other company receiving form", "请先手写签名": "Please draw your signature first", "请先保存签名": "Please save your signature first", "✓ 已保存本人签名": "✓ Your signature is saved", "确定删除本机已保存的签名？": "Delete the saved signature on this device?", "本机储存失败：": "Local storage failed: ", "请输入模板名称": "Please enter a template name", "已保存模板。适用于版式一致的 PDF。": "Template saved. Use with PDFs of the same layout.", "删除模板 ": "Delete template ", "恢复会覆盖本机签名和设置，确定继续？": "Restore will overwrite local signature and settings. Continue?", "恢复成功，页面将重新载入": "Restore successful. The page will reload.", "无法恢复：": "Restore failed: ", "不是有效的 PDF Auto Sign 备份": "Not a valid PDF Auto Sign backup", "备份文件过大": "Backup file is too large", "备份资料格式错误": "Invalid backup data format", "签名图片格式错误": "Invalid signature image format", "艺术字体尚未加载，请连接网络后重试": "Artistic font has not loaded. Connect to the internet and try again.", "请先选择 PDF": "Please select a PDF first", "请先输入本人姓名": "Please enter your name first", "请先保存本人签名": "Please save your signature first", "请至少勾选一个签名栏": "Please select at least one signature field", "请先确认签名授权": "Please confirm signing authorization", "请先预览并确认签名位置": "Please review and confirm the signature position", "请检查所有选中的签名栏及其他文件。": "Check all selected signature fields and other files.", "已确认当前预览。": "Preview confirmed.", "请选择有效签名日期": "Please choose a valid signing date", "无法识别为 TMC 模板，请改用自定义模式": "Could not detect a TMC form. Please use Custom mode.", "PDF 没有页面": "PDF has no pages", "TMC 模板仅支持横向 A4，已跳过": "TMC template supports landscape A4 only; skipped", "未选择此文件类型可用的签名栏": "No applicable signature fields selected for this form", "签名超出页面": "Signature exceeds the page boundary", "自定义签名超出页面边界": "Custom signature exceeds the page boundary", "姓名超出页面": "Name exceeds the page boundary", "签署内容下方空间不足以放日期，请将位置向上移动或缩小间距": "Not enough space for the date. Move the signature up or reduce the date spacing.", "PDF 处理组件未加载，请联网刷新": "PDF components did not load. Connect to the internet and refresh.", "请打开生成文件逐页核对。": "Open generated files and check every page.", "签名预览": "Signature preview", "当前预览：": "Current preview: ", "。拖动签名框到正确位置；切换勾选栏位可逐一调整。": ". Drag the signature box into position; switch selected fields to adjust each one.", "无法预览：": "Cannot preview: ", "已选择 ": "Selected ", " 份 PDF：": " PDFs: ", "第 ": "Page ", " 页": " ", "处理中 ": "Processing ", "完成：": "Completed: ", " 份 PDF。": " PDFs. ", "跳过：": "Skipped: ", "失败：": "Failed: ", "日期向下距离 ": "Date spacing ", "签名大小 ": "Signature size ", "姓名字体大小 ": "Name font size ", "语言 / Language": "Language"};
+ const malayTranslations={"日期位置（当前签名栏）":"Kedudukan tarikh (ruangan dipilih)","日期间距":"Jarak tarikh","签名下方 / Bottom":"Di bawah tandatangan","签名右侧 / Right":"Di kanan tandatangan","在签名或姓名旁添加日期":"Tambah tarikh pada tandatangan atau nama","日期默认当天，格式 DD/MM/YYYY；可为不同签名栏选择下方或右侧。签名前请逐页核对。":"Tarikh lalai ialah hari ini (DD/MM/YYYY). Pilih bawah atau kanan bagi setiap ruangan. Semak setiap halaman.","独立 App · 通用 PDF 批量签名":"Aplikasi Kendiri · Tandatangan PDF Secara Pukal","① 选择 PDF（可多选）":"① Pilih PDF (berbilang fail)","支持一次选择多份 PDF，完成后下载 ZIP。":"Pilih beberapa PDF dan muat turun fail ZIP setelah selesai.","② 保存本人签名":"② Simpan Tandatangan Anda","签名只保存在本机浏览器。其他使用者在自己的设备上独立保存。":"Tandatangan hanya disimpan dalam pelayar peranti ini. Pengguna lain menyimpan tandatangan pada peranti masing-masing.","清除画板":"Kosongkan Ruang","保存签名":"Simpan Tandatangan","删除已存签名":"Padam Tandatangan Tersimpan","尚未保存签名":"Belum ada tandatangan disimpan","③ 选择签署方式与个人设置":"③ Kaedah Tandatangan & Tetapan Peribadi","本次签署方式":"Kaedah tandatangan","方式 1：手写签名":"Pilihan 1: Lukis tandatangan","方式 2：输入姓名（不显示手写签名）":"Pilihan 2: Taip nama (tanpa tandatangan lukisan)","本人姓名":"Nama anda","姓名字体":"Fon nama","姓名字体大小":"Saiz fon nama","姓名字体预览（与导出的 PDF 使用同一张透明文字图片）：":"Pratonton nama (imej teks lutsinar yang sama digunakan dalam PDF yang dieksport):","新增的四种艺术字体首次使用需要联网加载；字体未加载成功时会使用系统备用字体。请等待字体加载后再预览和导出。中文会使用设备支持的回退字体。":"Empat fon artistik memerlukan internet untuk penggunaan pertama. Fon gantian digunakan jika gagal dimuatkan. Tunggu fon dimuatkan sebelum pratonton atau eksport. Aksara Cina menggunakan fon gantian peranti.","两种方式二选一：选择手写签名时只显示签名；选择输入姓名时只显示姓名。两种方式都可单独选择是否添加日期。每个签名栏都使用当前选定的方式。":"Pilih sama ada tandatangan lukisan atau nama ditaip, bukan kedua-duanya. Tarikh boleh ditambah untuk kedua-dua kaedah. Semua ruangan menggunakan kaedah yang dipilih.","备份个人设置（JSON）":"Sandarkan Tetapan (JSON)","恢复个人设置":"Pulihkan Tetapan","备份包含你的手写签名图片，请像保护签名原件一样妥善保管，不要公开分享备份文件。":"Sandaran mengandungi imej tandatangan anda. Simpan dengan selamat dan jangan kongsikan secara terbuka.","④ 选择文件模板与签名栏":"④ Templat PDF & Ruangan Tandatangan","签名模式":"Mod templat","自动识别 PDF 签名栏（支持其他公司）":"Kesan medan tandatangan PDF secara automatik (menyokong syarikat lain)","TMC Stock-in 入库单":"Borang Stok Masuk TMC","TMC Material Issue Note 领料单":"Nota Pengeluaran Bahan TMC","自定义通用 PDF 模板":"Templat PDF Tersuai","勾选的签名栏将使用当前选择的签署方式（手写签名或输入姓名）。自动模式会忽略与文件类型不符的栏位。":"Ruangan ditanda menggunakan kaedah tandatangan yang dipilih. Mod automatik mengabaikan ruangan yang tidak berkaitan.","自定义模板名称":"Nama templat tersuai","已保存模板":"Templat tersimpan","新建模板":"Templat baharu","保存当前签名位置为模板":"Simpan Kedudukan sebagai Templat","删除所选模板":"Padam Templat Dipilih","请先选择 PDF，在下面预览上点击要签名的位置；每次点击只设置一个签名位置。批量文件需版式一致。":"Pilih PDF dan ketik pratonton untuk meletakkan tandatangan. Setiap ketikan menetapkan satu kedudukan. Fail pukal mesti mempunyai susun atur yang sama.","⑤ 预览签名位置":"⑤ Pratonton Kedudukan Tandatangan","在签名或姓名旁添加日期":"Tambah tarikh di bawah tandatangan atau nama","签名日期（可修改）":"Tarikh tandatangan (boleh diubah)","日期向下距离":"Jarak tarikh di bawah tandatangan","日期默认当天，格式 DD/MM/YYYY；可为不同签名栏选择下方或右侧。签名前请逐页核对。":"Tarikh lalai ialah hari ini dalam format DD/MM/YYYY, di bawah tandatangan. Semak setiap halaman sebelum menandatangani.","预览文件":"Fail pratonton","预览页码":"Halaman pratonton","请先选择 PDF。自定义模式：点击页面放置签名。":"Pilih PDF dahulu. Dalam mod Tersuai, ketik halaman untuk menetapkan kedudukan tandatangan.","签名大小":"Saiz tandatangan","已识别的签名栏会自动定位，不必拖动。红框显示当前栏位，蓝框显示其他已选栏位；只有识别不确定时才需人工复核。":"Kotak merah menunjukkan tandatangan anda. Seret untuk mengubah kedudukan. Setiap ruangan menyimpan kedudukan sendiri. Semak setiap halaman.","确认当前预览位置":"Sahkan Kedudukan Pratonton","⑥ 确认并批量签名":"⑥ Sahkan & Tandatangan Secara Pukal","我确认只使用本人签名或已获得明确授权，并确认所选签名栏有权由我签署。":"Saya mengesahkan ini tandatangan saya atau saya mendapat kebenaran jelas, dan saya diberi kuasa menandatangani ruangan yang dipilih.","我已预览并确认签名位置。":"Saya telah menyemak dan mengesahkan kedudukan tandatangan.","批量生成已签名 PDF（ZIP）":"Jana PDF Bertandatangan (ZIP)","仅在本机浏览器处理文件；处理库首次需要联网。生成的是可见图片签名，不是证书型数字签章。原始 PDF 不修改；请逐页核对签名。共用设备请删除保存的签名。":"Fail diproses dalam pelayar peranti sahaja; pustaka memerlukan internet kali pertama. Ini tandatangan imej yang kelihatan, bukan tandatangan digital bersijil. Fail asal tidak diubah. Semak setiap halaman dan padam tandatangan tersimpan pada peranti kongsi.","与 MyMoney 完全独立":"Berasingan sepenuhnya daripada MyMoney","Great Vibes（默认）":"Great Vibes (lalai)","经典衬线体":"Serif Klasik","英文斜体":"Italik Bahasa Inggeris","请输入本人姓名（支持中文 / English / Bahasa Melayu）":"Masukkan nama anda (中文 / English / Bahasa Melayu)","例如：其他公司收货单":"cth. Borang penerimaan syarikat lain","请先手写签名":"Sila lukis tandatangan dahulu","请先保存签名":"Sila simpan tandatangan dahulu","✓ 已保存本人签名":"✓ Tandatangan anda telah disimpan","确定删除本机已保存的签名？":"Padam tandatangan yang disimpan pada peranti ini?","本机储存失败：":"Gagal menyimpan pada peranti: ","请输入模板名称":"Sila masukkan nama templat","已保存模板。适用于版式一致的 PDF。":"Templat disimpan. Gunakan dengan PDF yang mempunyai susun atur sama.","删除模板 ":"Padam templat ","恢复会覆盖本机签名和设置，确定继续？":"Pemulihan akan menggantikan tandatangan dan tetapan setempat. Teruskan?","恢复成功，页面将重新载入":"Pemulihan berjaya. Halaman akan dimuat semula.","无法恢复：":"Pemulihan gagal: ","不是有效的 PDF Auto Sign 备份":"Bukan sandaran PDF Auto Sign yang sah","备份文件过大":"Fail sandaran terlalu besar","备份资料格式错误":"Format data sandaran tidak sah","签名图片格式错误":"Format imej tandatangan tidak sah","艺术字体尚未加载，请连接网络后重试":"Fon artistik belum dimuatkan. Sambung ke internet dan cuba lagi.","请先选择 PDF":"Sila pilih PDF dahulu","请先输入本人姓名":"Sila masukkan nama anda dahulu","请先保存本人签名":"Sila simpan tandatangan anda dahulu","请至少勾选一个签名栏":"Sila pilih sekurang-kurangnya satu ruangan tandatangan","请先确认签名授权":"Sila sahkan kebenaran menandatangani","请先预览并确认签名位置":"Sila semak dan sahkan kedudukan tandatangan","请检查所有选中的签名栏及其他文件。":"Semak semua ruangan tandatangan yang dipilih dan fail lain.","已确认当前预览。":"Pratonton semasa disahkan.","请选择有效签名日期":"Sila pilih tarikh tandatangan yang sah","无法识别为 TMC 模板，请改用自定义模式":"Borang TMC tidak dapat dikesan. Sila gunakan mod Tersuai.","PDF 没有页面":"PDF tiada halaman","TMC 模板仅支持横向 A4，已跳过":"Templat TMC hanya menyokong A4 melintang; dilangkau","未选择此文件类型可用的签名栏":"Tiada ruangan tandatangan yang sesuai dipilih untuk borang ini","签名超出页面":"Tandatangan melebihi sempadan halaman","自定义签名超出页面边界":"Tandatangan tersuai melebihi sempadan halaman","姓名超出页面":"Nama melebihi sempadan halaman","签署内容下方空间不足以放日期，请将位置向上移动或缩小间距":"Ruang di bawah tandatangan tidak mencukupi untuk tarikh. Alihkan ke atas atau kurangkan jarak tarikh.","PDF 处理组件未加载，请联网刷新":"Komponen PDF gagal dimuatkan. Sambung ke internet dan muat semula.","请打开生成文件逐页核对。":"Buka fail yang dijana dan semak setiap halaman.","签名预览":"Pratonton tandatangan","当前预览：":"Pratonton semasa: ","。拖动签名框到正确位置；切换勾选栏位可逐一调整。":". Seret kotak tandatangan ke kedudukan yang betul; tukar ruangan dipilih untuk melaras satu demi satu.","无法预览：":"Tidak dapat membuat pratonton: ","已选择 ":"Dipilih "," 份 PDF：":" PDF: ","第 ":"Halaman "," 页":" ","处理中 ":"Memproses ","完成：":"Selesai: "," 份 PDF。":" PDF. ","跳过：":"Dilangkau: ","失败：":"Gagal: ","日期向下距离 ":"Jarak tarikh ","签名大小 ":"Saiz tandatangan ","姓名字体大小 ":"Saiz fon nama ","语言 / Language":"Bahasa / Language"};
+ const langKey='pdfautosign_language_v140';
+ const picker=document.getElementById('appLanguage');
+ picker.value=['zh','en','ms'].includes(localStorage.getItem(langKey))?localStorage.getItem(langKey):'zh';
+ const source=new WeakMap();
+ const placeholderSource=new WeakMap();
+ const translate=(t,language=picker.value)=>{
+   const dictionary=language==='ms'?malayTranslations:translations;
+   if(dictionary[t]!==undefined)return dictionary[t];
+   let trim=t.trim();
+   if(dictionary[trim]!==undefined)return t.replace(trim,dictionary[trim]);
+   let out=t;
+   for(const [zh,en] of Object.entries(dictionary).sort((a,b)=>b[0].length-a[0].length)){
+     if(zh.length>=3 && out.includes(zh))out=out.split(zh).join(en);
+   }
+   return out;
+ };
+ let changing=false;
+ function apply(){
+  if(changing)return;changing=true;
+  const language=picker.value;document.documentElement.lang=language==='zh'?'zh-CN':language;
+  const walk=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  let node;
+  while(node=walk.nextNode()){
+    if(['SCRIPT','STYLE'].includes(node.parentElement?.tagName))continue;
+    let raw=source.get(node);
+    if(raw===undefined){raw=node.nodeValue;source.set(node,raw)}
+    let expected=language==='zh'?raw:translate(raw,language);
+    if(node.nodeValue!==expected){
+      // When application scripts refresh status text, treat it as a new source.
+      if(node.nodeValue!==translate(raw,'en')&&node.nodeValue!==translate(raw,'ms')&&node.nodeValue!==raw){raw=node.nodeValue;source.set(node,raw);expected=language==='zh'?raw:translate(raw,language)}
+      node.nodeValue=expected;
+    }
+  }
+  document.querySelectorAll('input[placeholder]').forEach(el=>{
+   let raw=placeholderSource.get(el);
+   if(raw===undefined){raw=el.placeholder;placeholderSource.set(el,raw)}
+   el.placeholder=language==='zh'?raw:translate(raw,language);
+  });
+  changing=false;
+ }
+ picker.addEventListener('change',()=>{localStorage.setItem(langKey,picker.value);apply()});
+ const observer=new MutationObserver(()=>{if(!changing)apply()});
+ observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+ // Translate dialogs generated by the existing application.
+ const nativeAlert=window.alert.bind(window),nativeConfirm=window.confirm.bind(window);
+ window.alert=msg=>nativeAlert(picker.value==='zh'?msg:translate(String(msg)));
+ window.confirm=msg=>nativeConfirm(picker.value==='zh'?msg:translate(String(msg)));
+ apply();
+})();
+</script>
+</body></html>
