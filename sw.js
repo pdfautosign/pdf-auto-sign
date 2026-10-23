@@ -1,4 +1,4 @@
-const CACHE = 'pdfautosign-v1550-filename-templates';
+const CACHE = 'pdfautosign-v1555-new-icon';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.png', './icon-512.png', './install.html'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
